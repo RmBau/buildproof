@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>BuildProof – Field Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --steel: #1c2630;
+    --mid: #2e3d4a;
+    --border: #3a4d5c;
+    --accent: #f5a623;
+    --text: #e8edf0;
+    --muted: #7a96a8;
+    --white: #ffffff;
+    --input-bg: #162028;
+    --radius: 8px;
+    --green: #2ecc71;
+    --blue: #3498db;
+    --orange: #f5a623;
+    --red: #e74c3c;
+    --purple: #9b59b6;
+    --teal: #1abc9c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  .header {
+    background: var(--steel);
+    border-bottom: 2px solid var(--accent);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: var(--accent); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .logo-mark svg { width: 24px; height: 24px; }
+  .logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; color: var(--white); line-height: 1; }
+  .logo-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-top: 2px; }
+  .header-ts { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; line-height: 1.5; }
+
+  .context-bar {
+    background: var(--mid);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+  }
+  .ctx-item { display: flex; flex-direction: column; gap: 2px; }
+  .ctx-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .ctx-value { font-size: 13px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctx-value.tag { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 1px; color: var(--accent); }
+
+  .no-tag-warning {
+    background: rgba(231,76,60,0.12); border: 1px solid var(--red);
+    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--red);
+    margin: 12px 16px 0; display: none;
+  }
+
+  .form-wrap { max-width: 540px; margin: 0 auto; padding: 20px 16px; }
+
+  .section-label {
+    font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 3px;
+    color: var(--accent); margin: 24px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-of-type { margin-top: 4px; }
+
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  label .req { color: var(--accent); margin-left: 2px; }
+
+  input[type="text"], select, textarea {
+    width: 100%; background: var(--input-bg); border: 1.5px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 12px 14px;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a96a8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer;
+  }
+  select option { background: var(--steel); color: var(--text); }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+  .status-btn {
+    background: var(--input-bg); border: 1.5px solid var(--border); border-radius: var(--radius);
+    color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+    padding: 10px 4px 8px; cursor: pointer; text-align: center;
+    transition: all 0.15s; -webkit-tap-highlight-color: transparent; line-height: 1.3;
+  }
+  .status-btn .dot { display: block; width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 5px; background: var(--border); transition: background 0.15s; }
+  .status-btn:hover { border-color: var(--muted); color: var(--text); }
+  .status-btn[data-value="In Progress"].active         { border-color: var(--blue);   color: var(--blue);   background: rgba(52,152,219,0.1); }
+  .status-btn[data-value="In Progress"].active .dot    { background: var(--blue); }
+  .status-btn[data-value="Ready for Inspection"].active      { border-color: var(--orange); color: var(--orange); background: rgba(245,166,35,0.1); }
+  .status-btn[data-value="Ready for Inspection"].active .dot { background: var(--orange); }
+  .status-btn[data-value="Passed Inspection"].active   { border-color: var(--green); color: var(--green); background: rgba(46,204,113,0.1); }
+  .status-btn[data-value="Passed Inspection"].active .dot { background: var(--green); }
+  .status-btn[data-value="Failed Inspection"].active   { border-color: var(--red); color: var(--red); background: rgba(231,76,60,0.1); }
+  .status-btn[data-value="Failed Inspection"].active .dot { background: var(--red); }
+  .status-btn[data-value="Correction Complete"].active { border-color: var(--purple); color: var(--purple); background: rgba(155,89,182,0.1); }
+  .status-btn[data-value="Correction Complete"].active .dot { background: var(--purple); }
+  .status-btn[data-value="Final Complete"].active      { border-color: var(--teal); color: var(--teal); background: rgba(26,188,156,0.1); }
+  .status-btn[data-value="Final Complete"].active .dot { background: var(--teal); }
+
+  .photo-drop {
+    background: var(--input-bg); border: 1.5px dashed var(--border);
+    border-radius: var(--radius); padding: 18px; text-align: center;
+    cursor: pointer; position: relative; transition: border-color 0.2s;
+  }
+  .photo-drop:hover { border-color: var(--accent); }
+  .photo-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; padding: 0; border: none; background: none; }
+  .photo-icon { font-size: 24px; margin-bottom: 5px; }
+  .photo-hint { font-size: 12px; color: var(--muted); }
+  .photo-name { font-size: 12px; color: var(--accent); margin-top: 5px; display: none; }
+
+  .submit-btn {
+    width: 100%; background: var(--accent); border: none; border-radius: var(--radius);
+    color: var(--black); font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+    letter-spacing: 3px; padding: 16px; cursor: pointer; margin-top: 28px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .submit-btn:hover { background: #e8981a; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--steel); border: 1.5px solid var(--border); border-radius: 50px;
+    padding: 12px 24px; font-size: 13px; font-weight: 600; white-space: nowrap;
+    transition: transform 0.3s ease, opacity 0.3s; opacity: 0; z-index: 999; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error   { border-color: var(--red);   color: var(--red); }
+
+  .success-screen { display: none; text-align: center; padding: 60px 20px; }
+  .success-screen.visible { display: block; }
+  .form-wrap.hidden { display: none; }
+  .checkmark { width: 70px; height: 70px; background: rgba(46,204,113,0.12); border: 2px solid var(--green); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 20px; }
+  .success-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 3px; color: var(--white); margin-bottom: 6px; }
+  .success-meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; line-height: 1.8; }
+  .success-meta strong { color: var(--text); }
+  .new-scan-btn { background: transparent; border: 1.5px solid var(--accent); border-radius: var(--radius); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; padding: 12px 32px; cursor: pointer; margin-top: 28px; transition: background 0.2s; display: inline-block; }
+  .new-scan-btn:hover { background: rgba(245,166,35,0.1); }
+
+  @media (max-width: 360px) { .status-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C7.5 2 4 6 4 11H20C20 6 16.5 2 12 2Z" fill="#0a0a0a"/>
+      <rect x="3" y="11" width="18" height="3" rx="1.5" fill="#0a0a0a"/>
+      <path d="M7 18l3.5 3.5L17 15" stroke="#0a0a0a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div>
+    <div class="logo-text">BuildProof</div>
+    <div class="logo-sub">Field Verification</div>
+  </div>
+  <div class="header-ts" id="header-ts"></div>
+</div>
+
+<div class="context-bar">
+  <div class="ctx-item">
+    <span class="ctx-label">Client</span>
+    <span class="ctx-value" id="ctx-company">—</span>
+  </div>
+  <div class="ctx-item">
+    <span class="ctx-label">Tag ID</span>
+    <span class="ctx-value tag" id="ctx-tagid">—</span>
+  </div>
+  <div class="ctx-item">
+    <span class="ctx-label">Project</span>
+    <span class="ctx-value" id="ctx-project">—</span>
+  </div>
+  <div class="ctx-item">
+    <span class="ctx-label">Location</span>
+    <span class="ctx-value" id="ctx-location">—</span>
+  </div>
+</div>
+
+<div class="no-tag-warning" id="no-tag-warning">
+  ⚠ No tag data detected. Scan a BuildProof NFC tag to auto-fill project info.
+</div>
+
+<div class="form-wrap" id="main-form">
+
+  <div class="section-label">Who's Scanning</div>
+  <div class="field">
+    <label>Your Name <span class="req">*</span></label>
+    <input type="text" id="scanner" placeholder="First Last" autocomplete="name" autocorrect="off">
+  </div>
+
+  <div class="section-label">Work Being Verified</div>
+  <div class="field">
+    <label>Trade <span class="req">*</span></label>
+    <select id="trade"><option value="">Select trade…</option></select>
+  </div>
+  <div class="field">
+    <label>Task <span class="req">*</span></label>
+    <select id="task" disabled><option value="">Select trade first…</option></select>
+  </div>
+  <div class="field">
+    <label>Status <span class="req">*</span></label>
+    <div class="status-grid">
+      <button type="button" class="status-btn" data-value="In Progress" onclick="setStatus(this)"><span class="dot"></span>In Progress</button>
+      <button type="button" class="status-btn" data-value="Ready for Inspection" onclick="setStatus(this)"><span class="dot"></span>Ready for Insp.</button>
+      <button type="button" class="status-btn" data-value="Passed Inspection" onclick="setStatus(this)"><span class="dot"></span>Passed Insp.</button>
+      <button type="button" class="status-btn" data-value="Failed Inspection" onclick="setStatus(this)"><span class="dot"></span>Failed Insp.</button>
+      <button type="button" class="status-btn" data-value="Correction Complete" onclick="setStatus(this)"><span class="dot"></span>Correction Complete</button>
+      <button type="button" class="status-btn" data-value="Final Complete" onclick="setStatus(this)"><span class="dot"></span>Final Complete</button>
+    </div>
+    <input type="hidden" id="status" value="">
+  </div>
+
+  <div class="section-label">Documentation</div>
+  <div class="field">
+    <label>Notes</label>
+    <textarea id="notes" placeholder="Observations, issues, or comments…"></textarea>
+  </div>
+  <div class="field">
+    <label>Photo</label>
+    <div class="photo-drop">
+      <input type="file" id="photo" accept="image/*" capture="environment" onchange="photoSelected(this)">
+      <div class="photo-icon">📷</div>
+      <div class="photo-hint">Tap to take or upload a photo</div>
+      <div class="photo-name" id="photo-name"></div>
+    </div>
+  </div>
+
+  <input type="hidden" id="h-timestamp">
+  <input type="hidden" id="h-company">
+  <input type="hidden" id="h-project">
+  <input type="hidden" id="h-location">
+  <input type="hidden" id="h-tagid">
+
+  <button class="submit-btn" id="submit-btn" onclick="submitForm()">SUBMIT VERIFICATION</button>
+</div>
+
+<div class="success-screen" id="success-screen">
+  <div class="checkmark">✓</div>
+  <div class="success-title">Verification Logged</div>
+  <div class="success-meta" id="success-meta"></div>
+  <button class="new-scan-btn" onclick="resetForm()">LOG ANOTHER SCAN</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzYNKWs31VwrqwB4ZRKoK5cCZDOpZhYNi8i5FAC9kJAysJaFlDgZ9Nn7oDoBV39MC9LSg/exec';
+
+const TRADE_TASKS = {
+  "Access Control":["Install Device","Run Cabling","Terminate Connections","Program System","System Test"],
+  "Acoustical Ceilings":["Install Grid","Install Ceiling Tile","Install Access Panels","Adjust Ceiling System","Final Inspection"],
+  "Aluminum":["Install Frames","Install Panels","Seal Joints","Adjust Alignment","Final Inspection"],
+  "Appliances":["Deliver Appliance","Install Appliance","Connect Utilities","Operational Test","Final Inspection"],
+  "Asphalt Paving":["Prepare Subgrade","Place Asphalt","Compact Surface","Stripe Pavement","Final Inspection"],
+  "Balcony Waterproofing":["Surface Preparation","Apply Waterproofing","Seal Penetrations","Water Test","Final Inspection"],
+  "Blinds / Window Treatments":["Measure Opening","Install Mounting Hardware","Install Blinds","Adjust Operation","Final Inspection"],
+  "Building Automation Systems (BAS)":["Install Controllers","Run Control Wiring","Program System","System Integration","Functional Test"],
+  "Cabinetry":["Deliver Cabinets","Install Base Cabinets","Install Wall Cabinets","Adjust Doors","Final Inspection"],
+  "Carpentry – Finish":["Install Trim","Install Doors","Install Hardware","Adjust Components","Final Inspection"],
+  "Carpentry – Framing":["Layout Walls","Install Framing","Install Blocking","Frame Openings","Inspection"],
+  "Caulking / Sealants":["Surface Preparation","Apply Sealant","Tool Joint","Cure Verification","Final Inspection"],
+  "CCTV":["Install Cameras","Run Cabling","Terminate Connections","Configure System","Operational Test"],
+  "Cleaning":["Rough Clean","Pre-Clean","Final Clean","Spot Clean","Punch Clean"],
+  "Concrete":["Formwork Setup","Install Reinforcement","Concrete Placement","Concrete Finishing","Final Inspection"],
+  "Concrete Cutting / Coring":["Layout Cuts","Perform Cutting","Perform Coring","Cleanup Area","Final Inspection"],
+  "Concrete-Gypsum":["Surface Preparation","Apply Slurry","Thickness Check","Repair Areas","Inspection"],
+  "Countertops":["Measure Area","Deliver Countertop","Install Countertop","Seal Joints","Final Inspection"],
+  "Crane Operations":["Setup Crane","Lift Operation","Position Material","Secure Load","Shutdown Crane"],
+  "Curtain Wall":["Install Anchors","Install Frames","Install Glass Panels","Seal System","Water Test"],
+  "Demolition":["Protect Area","Remove Materials","Sort Debris","Dispose Waste","Final Inspection"],
+  "Doors – Commercial":["Install Frame","Hang Door","Install Hardware","Adjust Door","Final Inspection"],
+  "Doors – Overhead":["Install Track","Install Door Panels","Install Motor","Operational Test","Final Inspection"],
+  "Drywall":["Hang Drywall","Tape Joints","Apply Joint Compound","Apply Texture","Sand Surface","Final Inspection"],
+  "Earthwork":["Site Clearing","Excavation","Fill Placement","Compaction","Final Inspection"],
+  "Electrical":["Install Conduit","Pull Wire","Install Devices","Terminate Connections","Operational Test"],
+  "Elevators":["Install Rails","Install Cab","Install Controls","System Test","Final Inspection"],
+  "Electronic Security":["Install Sensors","Install Panels","Program System","System Test","Final Inspection"],
+  "Environmental Remediation":["Containment Setup","Remove Hazardous Material","Decontamination","Air Testing","Final Clearance"],
+  "Excavation":["Excavate Area","Install Shoring","Grade Subgrade","Backfill","Inspection"],
+  "Fencing":["Install Posts","Install Panels","Install Gates","Adjust Alignment","Final Inspection"],
+  "Fire Alarm":["Install Devices","Run Wiring","Program System","System Test","Final Inspection"],
+  "Fire Protection – Fireproofing":["Surface Preparation","Apply Fireproofing","Thickness Check","Repair Areas","Inspection"],
+  "Fire Sprinkler":["Install Piping","Install Heads","Hydrostatic Test","Flush System","Final Inspection"],
+  "Flooring - Carpet":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
+  "Flooring - Tile":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
+  "Flooring - Vinyl":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
+  "Flooring - Wood":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
+  "Foundations":["Excavate Footings","Install Reinforcement","Concrete Placement","Strip Forms","Inspection"],
+  "Framing – Metal Stud":["Layout Walls","Install Studs","Install Tracks","Install Blocking","Inspection"],
+  "Gas Lines":["Install Piping","Pressure Test","Connect Equipment","Leak Check","Inspection"],
+  "Glazing/Storefront":["Install Frames","Install Glass","Seal System","Adjust Panels","Final Inspection"],
+  "Grading":["Rough Grade","Final Grade","Compaction","Slope Verification","Inspection"],
+  "Granite / Stone":["Measure Area","Deliver Material","Install Stone","Seal Surface","Final Inspection"],
+  "Gutters":["Install Gutters","Install Downspouts","Seal Joints","Water Test","Inspection"],
+  "HVAC":["Install Equipment","Install Ductwork","Connect Systems","Start Up System","Operational Test"],
+  "HVAC Controls":["Install Controllers","Run Wiring","Program Controls","Functional Test","Inspection"],
+  "Insulation":["Install Insulation","Seal Gaps","Install Vapor Barrier","Inspection","Final Check"],
+  "Ironwork":["Install Structural Steel","Bolt Connections","Weld Connections","Alignment Check","Inspection"],
+  "Landscaping":["Site Preparation","Install Planting","Install Irrigation","Install Sod","Final Inspection"],
+  "Low Voltage":["Install Cabling","Terminate Connections","Install Devices","System Test","Final Inspection"],
+  "Masonry-Brick":["Layout Work","Install Masonry","Install Lintels","Tool Joints","Final Inspection"],
+  "Masonry-CMU":["Layout Work","Install Masonry","Install Lintels","Tool Joints","Final Inspection"],
+  "Masonry-Stone":["Layout Work","Install Masonry","Tool Joints","Clean Surface","Final Inspection"],
+  "Mechanical":["Install Equipment","Install Piping","Connect Systems","System Test","Final Inspection"],
+  "Millwork/Finish Hardware":["Install Components","Adjust Components","Secure Assemblies","Touch Up","Final Inspection"],
+  "Painting-Exterior":["Surface Preparation","Prime Surface","Apply Paint","Touch Up","Final Inspection"],
+  "Painting-Interior":["Surface Preparation","Prime Surface","Apply Paint","Touch Up","Final Inspection"],
+  "Paving":["Prepare Base","Install Pavement","Compact Surface","Stripe Surface","Inspection"],
+  "Plumbing":["Install Piping","Install Fixtures","Pressure Test","Connect Systems","Inspection"],
+  "Post-Tension":["Install Tendons","Stress Tendons","Grout Anchors","Inspection","Final Review"],
+  "Precast Parking Decks":["Install Bearing Pads","Erect Columns","Install Beams","Set Double Tee Deck Panels","Grout Connections","Install Expansion Joints"],
+  "Roofing":["Install Underlayment","Install Roofing System","Seal Penetrations","Water Test","Inspection"],
+  "Scaffolding":["Assemble Scaffold","Inspect Structure","Adjust Scaffold","Disassemble Scaffold","Final Inspection"],
+  "Sheet Metal":["Install Ductwork","Install Supports","Seal Joints","Pressure Test","Inspection"],
+  "Siding - Cement":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
+  "Siding - Metal":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
+  "Siding - Vinyl":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
+  "Siding - Wood":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
+  "Signage - Exterior":["Install Mounts","Install Sign","Connect Power","Test Lighting","Inspection"],
+  "Signage - Interior":["Install Mounts","Install Sign","Connect Power","Test Lighting","Inspection"],
+  "Site Utilities":["Install Piping","Install Structures","Backfill","Pressure Test","Inspection"],
+  "Solar":["Install Racking","Install Panels","Run Wiring","System Test","Inspection"],
+  "Steel Erection":["Erect Steel","Bolt Connections","Weld Connections","Alignment Check","Inspection"],
+  "Structural Steel Fabrication":["Fabricate Components","Weld Assemblies","Quality Check","Deliver Steel","Inspection"],
+  "Stucco/EIFS":["Install Lath","Apply Scratch Coat","Apply Finish Coat","Cure Surface","Inspection"],
+  "Surveying":["Establish Control","Layout Points","Verify Elevations","As-Built Survey","Final Report"],
+  "Tiling":["Prepare Surface","Install Tile","Grout Joints","Seal Surface","Inspection"],
+  "Traffic Control":["Install Barriers","Install Signage","Direct Traffic","Remove Barriers","Inspection"],
+  "Underground Utilities":["Excavate Trench","Install Pipe","Backfill","Pressure Test","Inspection"],
+  "Waterproofing":["Surface Preparation","Apply Membrane","Seal Penetrations","Water Test","Inspection"],
+  "Welding":["Prepare Joint","Perform Weld","Grind Surface","Quality Check","Inspection"],
+  "Windows":["Install Frames","Install Glass","Seal Perimeter","Adjust Operation","Inspection"]
+};
+
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+  const company  = params.get('company')  || params.get('CompanyID') || '';
+  const project  = params.get('project')  || params.get('Project')   || '';
+  const location = params.get('location') || params.get('Location')  || '';
+  const tagid    = params.get('tagid')    || params.get('TagID')     || params.get('tag') || '';
+
+  document.getElementById('ctx-company').textContent  = company  || '—';
+  document.getElementById('ctx-project').textContent  = project  || '—';
+  document.getElementById('ctx-location').textContent = location || '—';
+  document.getElementById('ctx-tagid').textContent    = tagid    || '—';
+  document.getElementById('h-company').value  = company;
+  document.getElementById('h-project').value  = project;
+  document.getElementById('h-location').value = location;
+  document.getElementById('h-tagid').value    = tagid;
+  document.getElementById('h-timestamp').value = new Date().toISOString();
+
+  if (!company && !project && !tagid)
+    document.getElementById('no-tag-warning').style.display = 'block';
+
+  const now = new Date();
+  document.getElementById('header-ts').innerHTML =
+    now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) +
+    '<br>' + now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+
+  const tradeEl = document.getElementById('trade');
+  Object.keys(TRADE_TASKS).sort().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t; tradeEl.appendChild(o);
+  });
+})();
+
+document.getElementById('trade').addEventListener('change', function() {
+  const taskEl = document.getElementById('task');
+  const tasks = TRADE_TASKS[this.value];
+  taskEl.innerHTML = '';
+  if (!tasks) { taskEl.disabled = true; taskEl.innerHTML = '<option value="">Select trade first…</option>'; return; }
+  const ph = document.createElement('option'); ph.value = ''; ph.textContent = 'Select task…';
+  taskEl.appendChild(ph);
+  tasks.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; taskEl.appendChild(o); });
+  taskEl.disabled = false;
+});
+
+function setStatus(btn) {
+  document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('status').value = btn.dataset.value;
+}
+
+function photoSelected(input) {
+  const nameEl = document.getElementById('photo-name');
+  if (input.files && input.files[0]) { nameEl.textContent = '📎 ' + input.files[0].name; nameEl.style.display = 'block'; }
+}
+
+function validate() {
+  const checks = [{ id:'scanner', label:'Your Name' }, { id:'trade', label:'Trade' }, { id:'task', label:'Task' }];
+  for (const c of checks) {
+    if (!document.getElementById(c.id).value.trim()) { showToast('⚠ ' + c.label + ' is required', 'error'); document.getElementById(c.id).focus(); return false; }
+  }
+  if (!document.getElementById('status').value) { showToast('⚠ Select a Status', 'error'); return false; }
+  return true;
+}
+
+async function submitForm() {
+  if (!validate()) return;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'SUBMITTING…';
+
+  const payload = {
+    Timestamp:   new Date().toISOString(),
+    CompanyID:   document.getElementById('h-company').value,
+    Project:     document.getElementById('h-project').value,
+    Location:    document.getElementById('h-location').value,
+    TagID:       document.getElementById('h-tagid').value,
+    SelectTrade: document.getElementById('trade').value,
+    Task:        document.getElementById('task').value,
+    Status:      document.getElementById('status').value,
+    VerifiedBy:  document.getElementById('scanner').value.trim(),
+    Notes:       document.getElementById('notes').value.trim(),
+    Photo:       ''
+  };
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.result !== 'success') throw new Error(result.error || 'Unknown error');
+    showSuccess(payload);
+  } catch(err) {
+    btn.disabled = false; btn.textContent = 'SUBMIT VERIFICATION';
+    showToast('⚠ Submission failed. Check connection.', 'error');
+    console.error('Submission error:', err);
+  }
+}
+
+function showSuccess(p) {
+  document.getElementById('main-form').classList.add('hidden');
+  document.getElementById('success-screen').classList.add('visible');
+  document.getElementById('success-meta').innerHTML =
+    `<strong>${p.SelectTrade}</strong> · ${p.Task}<br>Status: <strong>${p.Status}</strong><br>${p.Project} · ${p.Location}`;
+}
+
+function resetForm() {
+  document.getElementById('main-form').classList.remove('hidden');
+  document.getElementById('success-screen').classList.remove('visible');
+  const btn = document.getElementById('submit-btn'); btn.disabled = false; btn.textContent = 'SUBMIT VERIFICATION';
+  document.getElementById('scanner').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('trade').selectedIndex = 0;
+  document.getElementById('task').innerHTML = '<option value="">Select trade first…</option>';
+  document.getElementById('task').disabled = true;
+  document.getElementById('status').value = '';
+  document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('photo-name').style.display = 'none';
+  document.getElementById('h-timestamp').value = new Date().toISOString();
+}
+
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + type + ' show';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+</script>
+
+<!--
+╔══════════════════════════════════════════════════════╗
+║         GOOGLE SHEETS SETUP — 5 MINUTES             ║
+╠══════════════════════════════════════════════════════╣
+║                                                      ║
+║  1. Open your Google Sheet (RAW_FormResponses tab)   ║
+║  2. Extensions → Apps Script → paste this code:     ║
+║                                                      ║
+║  function doPost(e) {                                ║
+║    const ss = SpreadsheetApp.getActiveSpreadsheet(); ║
+║    const sheet = ss.getSheetByName('RAW_FormResponses'); ║
+║    const d = JSON.parse(e.postData.contents);        ║
+║    sheet.appendRow([                                 ║
+║      d.Timestamp, d.CompanyID, d.Project,            ║
+║      d.Location,  d.TagID,     d.SelectTrade,        ║
+║      d.Task,      d.Status,    d.VerifiedBy,         ║
+║      d.Notes,     d.Photo                            ║
+║    ]);                                               ║
+║    return ContentService.createTextOutput('OK');     ║
+║  }                                                   ║
+║                                                      ║
+║  3. Deploy → New Deployment → Web App                ║
+║     Execute as: Me | Who has access: Anyone          ║
+║  4. Copy URL → replace WEBHOOK_URL above             ║
+║                                                      ║
+╠══════════════════════════════════════════════════════╣
+║              NFC TAG URL FORMAT                      ║
+╠══════════════════════════════════════════════════════╣
+║                                                      ║
+║  TAG_REGISTRY NFC_URL formula:                       ║
+║  ="https://yoursite.com/buildproof-form.html"        ║
+║  &"?company="&A2                                     ║
+║  &"&project="&ENCODEURL(B2)                          ║
+║  &"&location="&ENCODEURL(D2)                         ║
+║  &"&tagid="&E2                                       ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝
+-->
+</body>
+</html>
