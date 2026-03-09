@@ -482,6 +482,12 @@
 // ═══════════════════════════════════════════════
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzYNKWs31VwrqwB4ZRKoK5cCZDOpZhYNi8i5FAC9kJAysJaFlDgZ9Nn7oDoBV39MC9LSg/exec';
 
+// ═══════════════════════════════════════════════
+// CLIENT DIRECTORY — loaded from CLIENTS sheet
+// ═══════════════════════════════════════════════
+let CLIENT_NAMES = {};
+const clientDisplay = (id) => CLIENT_NAMES[id] || id;
+
 const STATUS_CONFIG = {
   'In Progress':          { color:'#3498db', bg:'rgba(52,152,219,0.15)',  order:1 },
   'Ready for Inspection': { color:'#f5a623', bg:'rgba(245,166,35,0.15)', order:2 },
@@ -562,8 +568,8 @@ function initURL() {
 
   if (lockedCompany || lockedProject) {
     // Locked client view
-    const label = lockedProject || lockedCompany;
-    const sub   = lockedProject && lockedCompany ? lockedCompany : '';
+    const label = lockedProject || clientDisplay(lockedCompany);
+    const sub   = lockedProject && lockedCompany ? clientDisplay(lockedCompany) : '';
     center.innerHTML = `
       <div class="client-pill">
         🏗&nbsp;${label}
@@ -607,6 +613,20 @@ function closeSettings() {
 // ═══════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════
+async function loadClients() {
+  try {
+    const res  = await fetch(`${WEBHOOK_URL}?action=getClients`);
+    const json = await res.json();
+    if (json.result === 'success') {
+      CLIENT_NAMES = json.clients;
+      // Refresh the header pill if locked view is active
+      if (lockedCompany || lockedProject) initURL();
+    }
+  } catch(e) {
+    // Non-fatal — falls back to showing CompanyID
+  }
+}
+
 async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('spinning');
@@ -759,8 +779,9 @@ function timeAgo(d) {
 // ═══════════════════════════════════════════════
 initURL();
 applyPrefsToDOM(loadPrefs());
-loadData();
+loadClients().then(() => loadData());
 setInterval(loadData, 60000);
+setInterval(loadClients, 300000); // refresh client names every 5 min
 </script>
 </body>
 </html>
