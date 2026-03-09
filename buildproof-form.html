@@ -375,10 +375,11 @@ const TRADE_TASKS = {
 
 (function init() {
   const params = new URLSearchParams(window.location.search);
-  const company  = params.get('company')  || params.get('CompanyID') || '';
-  const project  = params.get('project')  || params.get('Project')   || '';
-  const location = params.get('location') || params.get('Location')  || '';
-  const tagid    = params.get('tagid')    || params.get('TagID')     || params.get('tag') || '';
+  const decode = (val) => { try { return decodeURIComponent(val || ''); } catch(e) { return val || ''; } };
+  const company  = decode(params.get('company')  || params.get('CompanyID') || '');
+  const project  = decode(params.get('project')  || params.get('Project')   || '');
+  const location = decode(params.get('location') || params.get('Location')  || '');
+  const tagid    = decode(params.get('tagid')    || params.get('TagID')     || params.get('tag') || '');
 
   document.getElementById('ctx-company').textContent  = company  || '—';
   document.getElementById('ctx-project').textContent  = project  || '—';
