@@ -182,6 +182,22 @@
   <div class="header-ts" id="header-ts"></div>
 </div>
 
+<!-- Connection status bar -->
+<div id="conn-bar" style="
+  background:#1a2736;border-bottom:1px solid #2e4258;
+  padding:5px 20px;display:flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:600;letter-spacing:1px;
+  transition:background 0.3s;
+">
+  <span id="conn-dot" style="width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;flex-shrink:0;transition:background 0.3s;"></span>
+  <span id="conn-text" style="color:#a0bcd0;">ONLINE — Data will sync immediately</span>
+  <span id="queue-badge" style="
+    display:none;margin-left:auto;
+    background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);
+    color:#f5a623;padding:2px 10px;border-radius:10px;font-size:10px;
+  "></span>
+</div>
+
 <div class="context-bar">
   <div class="ctx-item">
     <span class="ctx-label">Client</span>
@@ -420,6 +436,103 @@ function validate() {
   return true;
 }
 
+// ═══════════════════════════════════════════
+// OFFLINE QUEUE
+// ═══════════════════════════════════════════
+const QUEUE_KEY = 'buildproof_offline_queue';
+
+function getQueue() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function saveQueue(q) {
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+}
+function addToQueue(payload) {
+  const q = getQueue();
+  q.push({ ...payload, _queued: new Date().toISOString() });
+  saveQueue(q);
+  updateConnUI();
+}
+function clearFromQueue(idx) {
+  const q = getQueue();
+  q.splice(idx, 1);
+  saveQueue(q);
+  updateConnUI();
+}
+
+// ── Connection detection ──
+let isOnline = navigator.onLine;
+
+function updateConnUI() {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  const badge = document.getElementById('queue-badge');
+  const q = getQueue();
+
+  if (!isOnline) {
+    dot.style.background = '#e74c3c';
+    dot.style.boxShadow  = '0 0 6px #e74c3c';
+    text.style.color = '#e74c3c';
+    text.textContent = 'OFFLINE — Submissions will be saved and sent when reconnected';
+    document.getElementById('conn-bar').style.background = 'rgba(231,76,60,0.1)';
+  } else if (q.length > 0) {
+    dot.style.background = '#f5a623';
+    dot.style.boxShadow  = '0 0 6px #f5a623';
+    text.style.color = '#f5a623';
+    text.textContent = 'ONLINE — Syncing queued submissions…';
+    document.getElementById('conn-bar').style.background = 'rgba(245,166,35,0.08)';
+  } else {
+    dot.style.background = '#2ecc71';
+    dot.style.boxShadow  = '0 0 6px #2ecc71';
+    text.style.color = '#a0bcd0';
+    text.textContent = 'ONLINE — Data will sync immediately';
+    document.getElementById('conn-bar').style.background = '#1a2736';
+  }
+
+  if (q.length > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = q.length + ' pending submission' + (q.length > 1 ? 's' : '');
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function sendPayload(payload) {
+  const res = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+  const result = await res.json();
+  if (result.result !== 'success') throw new Error(result.error || 'Unknown error');
+}
+
+async function flushQueue() {
+  const q = getQueue();
+  if (q.length === 0 || !isOnline) return;
+  for (let i = q.length - 1; i >= 0; i--) {
+    try {
+      const item = { ...q[i] };
+      delete item._queued;
+      await sendPayload(item);
+      clearFromQueue(i);
+    } catch(err) {
+      console.warn('Queue flush failed for item', i, err);
+      break; // stop on first failure, retry later
+    }
+  }
+  updateConnUI();
+}
+
+// Listen for connection changes
+window.addEventListener('online',  () => { isOnline = true;  updateConnUI(); flushQueue(); });
+window.addEventListener('offline', () => { isOnline = false; updateConnUI(); });
+
+// Auto-retry every 30 seconds when online
+setInterval(() => { if (isOnline) flushQueue(); }, 30000);
+
+// ── Submit ──
 async function submitForm() {
   if (!validate()) return;
   const btn = document.getElementById('submit-btn');
@@ -439,20 +552,31 @@ async function submitForm() {
     Photo:       ''
   };
 
+  if (!isOnline) {
+    // Save to queue, show success
+    addToQueue(payload);
+    btn.disabled = false; btn.textContent = 'SUBMIT VERIFICATION';
+    showSuccessOffline(payload);
+    return;
+  }
+
   try {
-    const res = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (result.result !== 'success') throw new Error(result.error || 'Unknown error');
+    await sendPayload(payload);
     showSuccess(payload);
   } catch(err) {
+    // Network failed even though we thought we were online — queue it
+    addToQueue(payload);
     btn.disabled = false; btn.textContent = 'SUBMIT VERIFICATION';
-    showToast('⚠ Submission failed. Check connection.', 'error');
-    console.error('Submission error:', err);
+    showSuccessOffline(payload);
+    console.warn('Submit failed, queued:', err);
   }
+}
+
+function showSuccessOffline(p) {
+  document.getElementById('main-form').classList.add('hidden');
+  document.getElementById('success-screen').classList.add('visible');
+  document.getElementById('success-meta').innerHTML =
+    `<strong>${p.SelectTrade}</strong> · ${p.Task}<br>Status: <strong>${p.Status}</strong><br>${p.Project} · ${p.Location}<br><span style="color:#f5a623;font-size:12px;">📶 Saved offline — will sync when connected</span>`;
 }
 
 function showSuccess(p) {
@@ -476,6 +600,13 @@ function resetForm() {
   document.getElementById('photo-name').style.display = 'none';
   document.getElementById('h-timestamp').value = new Date().toISOString();
 }
+
+// Init connection UI on page load
+document.addEventListener('DOMContentLoaded', () => {
+  isOnline = navigator.onLine;
+  updateConnUI();
+  if (isOnline) flushQueue();
+});
 
 let toastTimer;
 function showToast(msg, type='success') {
