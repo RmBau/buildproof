@@ -626,7 +626,8 @@ function exportCSV() {
     (!lockedCompany || r['CompanyID'] === lockedCompany) &&
     (!lockedProject || r['Project'] === lockedProject)
   );
-  const headers = ['Timestamp','CompanyID','Project','Location','TagID','SelectTrade','Task','Status','VerifiedBy','Notes'];
+  // Build headers dynamically from actual data keys (excludes internal _ts key)
+  const headers = Object.keys(filtered[0] || {}).filter(k => k !== '_ts');
   const rows = filtered.map(r => headers.map(h => {
     const val = (r[h] || '').toString().replace(/"/g, '""');
     return `"${val}"`;
