@@ -750,7 +750,7 @@ function renderFailed() {
   document.getElementById('failed-badge').textContent=items.length;
   document.getElementById('failed-list').innerHTML = items.length===0
     ? '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No failed inspections</div></div>'
-    : items.slice(0,8).map(r=>`<div class="failed-item"><div class="failed-header"><span class="failed-trade">${r['Select Trade']||'—'} · ${r['Task']||'—'}</span><span class="failed-time">${timeAgo(r._ts)}</span></div><div class="failed-detail">${r['Location']||'—'} · ${r['Project']||'—'} · ${r['Verified By']||'—'}</div>${r['Notes']?`<div style="font-size:11px;color:var(--accent);margin-top:4px">📝 ${r['Notes']}</div>`:''}</div>`).join('');
+    : items.slice(0,8).map(r=>`<div class="failed-item"><div class="failed-header"><span class="failed-trade">${r['SelectTrade']||'—'} · ${r['Task']||'—'}</span><span class="failed-time">${timeAgo(r._ts)}</span></div><div class="failed-detail">${r['Location']||'—'} · ${r['Project']||'—'} · ${r['VerifiedBy']||'—'}</div>${r['Notes']?`<div style="font-size:11px;color:var(--accent);margin-top:4px">📝 ${r['Notes']}</div>`:''}</div>`).join('');
 }
 
 function renderStale() {
@@ -758,14 +758,14 @@ function renderStale() {
   const stale=latestPerLoc(filtered).map(r=>({...r,ageDays:(now-r._ts)/86400000})).filter(r=>r.ageDays>sd).sort((a,b)=>b.ageDays-a.ageDays);
   document.getElementById('stale-tbody').innerHTML = stale.length===0
     ? `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-text">No stale locations</div></div></td></tr>`
-    : stale.slice(0,10).map(r=>{const d=Math.floor(r.ageDays),cls=d>7?'critical':d>3?'warning':'ok';return `<tr><td><span style="font-weight:600;color:var(--white)">${r['Location']||'—'}</span><br><span style="font-size:10px;color:var(--muted)">${r['Project']||''}</span></td><td>${r['Select Trade']||'—'}</td><td><span style="font-size:11px;color:${STATUS_CONFIG[r['Status']]?.color||'var(--muted)'}">${r['Status']||'—'}</span></td><td><span class="age-badge ${cls}">${d}d</span></td></tr>`;}).join('');
+    : stale.slice(0,10).map(r=>{const d=Math.floor(r.ageDays),cls=d>7?'critical':d>3?'warning':'ok';return `<tr><td><span style="font-weight:600;color:var(--white)">${r['Location']||'—'}</span><br><span style="font-size:10px;color:var(--muted)">${r['Project']||''}</span></td><td>${r['SelectTrade']||'—'}</td><td><span style="font-size:11px;color:${STATUS_CONFIG[r['Status']]?.color||'var(--muted)'}">${r['Status']||'—'}</span></td><td><span class="age-badge ${cls}">${d}d</span></td></tr>`;}).join('');
 }
 
 function renderActivity() {
   const items=[...filtered].sort((a,b)=>b._ts-a._ts).slice(0,10);
   document.getElementById('recent-activity').innerHTML = items.length===0
     ? '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No activity yet</div></div>'
-    : items.map(r=>{const cfg=STATUS_CONFIG[r['Status']]||{color:'var(--muted)'};return `<div class="activity-item"><div class="activity-dot" style="background:${cfg.color};box-shadow:0 0 5px ${cfg.color}40"></div><div class="activity-content"><div class="activity-main">${r['Select Trade']||'—'} · ${r['Task']||'—'}</div><div class="activity-meta">${r['Location']||'—'} · ${r['Verified By']||'—'}</div></div><div class="activity-time">${timeAgo(r._ts)}</div></div>`;}).join('');
+    : items.map(r=>{const cfg=STATUS_CONFIG[r['Status']]||{color:'var(--muted)'};return `<div class="activity-item"><div class="activity-dot" style="background:${cfg.color};box-shadow:0 0 5px ${cfg.color}40"></div><div class="activity-content"><div class="activity-main">${r['SelectTrade']||'—'} · ${r['Task']||'—'}</div><div class="activity-meta">${r['Location']||'—'} · ${r['VerifiedBy']||'—'}</div></div><div class="activity-time">${timeAgo(r._ts)}</div></div>`;}).join('');
 }
 
 function renderLocations() {
@@ -789,8 +789,8 @@ function renderLocations() {
               <span style="font-size:12px;color:${cfg.color};font-weight:600;background:${cfg.bg};padding:3px 10px;border-radius:10px">${r['Status']||'—'}</span>
               <span style="font-size:11px;color:var(--muted)">${timeAgo(r._ts)}</span>
             </div>
-            <div style="font-size:12px;color:var(--text)">${r['Select Trade']||'—'} · <span style="color:var(--muted)">${r['Task']||'—'}</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">👤 ${r['Verified By']||'—'} · 🏷️ ${r['TagID']||'—'}</div>
+            <div style="font-size:12px;color:var(--text)">${r['SelectTrade']||'—'} · <span style="color:var(--muted)">${r['Task']||'—'}</span></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">👤 ${r['VerifiedBy']||'—'} · 🏷️ ${r['TagID']||'—'}</div>
           </div>
         </div>`;
       }).join('');
