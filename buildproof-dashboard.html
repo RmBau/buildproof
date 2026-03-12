@@ -788,6 +788,7 @@ function applyFilters() {
 function renderAll() {
   renderKPIs(); renderStatus(); renderFailed();
   renderStale(); renderActivity(); renderLocations();
+  populateScanLogFilters(); renderScanLog();
 }
 
 function latestPerLoc(data) {
