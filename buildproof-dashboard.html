@@ -256,6 +256,33 @@
   .kpi-card:nth-child(3){animation-delay:0.15s} .kpi-card:nth-child(4){animation-delay:0.20s}
 
   @media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
+  /* ── Scan Log ── */
+  .scan-log-wrap { margin-top: 28px; }
+  .scan-log-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+  .scan-filter { background:var(--steel); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:'DM Sans',sans-serif; font-size:12px; padding:7px 12px;
+    outline:none; cursor:pointer; transition:border-color 0.2s; }
+  .scan-filter:focus { border-color:var(--accent); }
+  .scan-filter option { background:var(--steel); }
+  .log-table-wrap { overflow-x:auto; border-radius:8px; border:1px solid var(--border); }
+  .log-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .log-table th { background:var(--steel); color:var(--muted); font-weight:700;
+    letter-spacing:1px; text-transform:uppercase; font-size:10px;
+    padding:10px 14px; text-align:left; border-bottom:1px solid var(--border);
+    white-space:nowrap; }
+  .log-table td { padding:9px 14px; border-bottom:1px solid rgba(37,58,82,0.5);
+    color:var(--text); vertical-align:middle; }
+  .log-table tr:last-child td { border-bottom:none; }
+  .log-table tr:hover td { background:rgba(255,255,255,0.02); }
+  .log-table .td-ts { color:var(--muted); font-size:11px; white-space:nowrap; }
+  .log-table .td-loc { font-weight:600; color:var(--white); }
+  .log-table .td-trade { color:var(--accent); }
+  .log-count { font-size:11px; color:var(--muted); margin-left:auto; }
+  .active-filter-pill { display:inline-flex; align-items:center; gap:6px;
+    background:rgba(245,166,35,0.12); border:1px solid rgba(245,166,35,0.3);
+    border-radius:12px; padding:3px 10px; font-size:11px; color:var(--accent);
+    cursor:pointer; }
+  .active-filter-pill:hover { background:rgba(245,166,35,0.2); }
   @media(max-width:700px){.header-center{display:none}}
   @media(max-width:700px){.header-right .mobile-company{display:flex!important}}
   @media(min-width:701px){.mobile-company{display:none!important}}
@@ -398,12 +425,12 @@
   <!-- KPI Strip -->
   <div class="section-title">OPS SUMMARY</div>
   <div class="kpi-grid">
-    <div class="kpi-card amber" id="kpi-wrap-total">
+    <div class="kpi-card amber" id="kpi-wrap-total" onclick="filterLogByKPI('total')" style="cursor:pointer;" title="View all scans">
       <div class="kpi-label">Total Check-Ins</div>
       <div class="kpi-value amber" id="kpi-total">—</div>
       <div class="kpi-sub">all time scans</div>
     </div>
-    <div class="kpi-card red" id="kpi-wrap-failed">
+    <div class="kpi-card red" id="kpi-wrap-failed" onclick="filterLogByKPI('failed')" style="cursor:pointer;" title="View failed inspections">
       <div class="kpi-label">Failed Inspections</div>
       <div class="kpi-value red" id="kpi-failed">—</div>
       <div class="kpi-sub">need attention</div>
@@ -413,7 +440,7 @@
       <div class="kpi-value amber" id="kpi-stale">—</div>
       <div class="kpi-sub" id="kpi-stale-sub">no activity</div>
     </div>
-    <div class="kpi-card green" id="kpi-wrap-done">
+    <div class="kpi-card green" id="kpi-wrap-done" onclick="filterLogByKPI('done')" style="cursor:pointer;" title="View completed locations">
       <div class="kpi-label">Final Complete</div>
       <div class="kpi-value green" id="kpi-done">—</div>
       <div class="kpi-sub">locations closed out</div>
@@ -476,6 +503,51 @@
     <div class="section-title">LATEST STATUS BY LOCATION</div>
     <div id="location-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:28px;">
       <div class="card"><div class="card-body"><div class="empty-state"><div class="empty-icon">📍</div><div class="empty-text">Loading…</div></div></div></div>
+    </div>
+  </div>
+
+  <!-- ── Scan Log ── -->
+  <div class="scan-log-wrap" id="sec-wrap-scanlog">
+    <div class="section-title" style="display:flex;align-items:center;gap:12px;">
+      SCAN LOG
+      <span id="active-filter-display"></span>
+      <span class="log-count" id="log-count"></span>
+    </div>
+    <div class="scan-log-filters">
+      <select class="scan-filter" id="log-location-filter" onchange="renderScanLog()">
+        <option value="">All Locations</option>
+      </select>
+      <select class="scan-filter" id="log-trade-filter" onchange="renderScanLog()">
+        <option value="">All Trades</option>
+      </select>
+      <select class="scan-filter" id="log-status-filter" onchange="renderScanLog()">
+        <option value="">All Statuses</option>
+      </select>
+      <select class="scan-filter" id="log-date-filter" onchange="renderScanLog()">
+        <option value="">All Dates</option>
+        <option value="1">Last 24 hours</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+      <button class="scan-filter" onclick="clearLogFilters()" style="cursor:pointer;color:var(--muted);">✕ Clear</button>
+    </div>
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Location</th>
+            <th>Trade</th>
+            <th>Task</th>
+            <th>Status</th>
+            <th>Verified By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="log-table-body">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">Loading…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -778,7 +850,7 @@ function renderLocations() {
     : locs.map(r=>{
         const cfg=STATUS_CONFIG[r['Status']]||{color:'var(--muted)',bg:'rgba(122,150,168,0.1)'};
         const age=Math.floor((new Date()-r._ts)/86400000), stale=age>=sd;
-        return `<div class="card" style="border-color:${stale?'rgba(245,166,35,0.3)':'var(--border)'}">
+        return `<div class="card" style="border-color:${stale?'rgba(245,166,35,0.3)':'var(--border)'};cursor:pointer;" onclick="filterLogByLocation('${r['Location']}')" title="View all scans for ${r['Location']}">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--steel);display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-weight:600;font-size:13px;color:var(--white)">${r['Location']||'—'}</div>
@@ -804,6 +876,120 @@ function timeAgo(d) {
   if(s<3600) return Math.floor(s/60)+'m ago';
   if(s<86400) return Math.floor(s/3600)+'h ago';
   return Math.floor(s/86400)+'d ago';
+}
+
+// ═══════════════════════════════════════════════
+// SCAN LOG
+// ═══════════════════════════════════════════════
+let logLocationFilter = '';
+let logTradeFilter    = '';
+let logStatusFilter   = '';
+let logDateFilter     = '';
+
+function populateScanLogFilters() {
+  const locs     = [...new Set(filtered.map(r=>r['Location']).filter(Boolean))].sort();
+  const trades   = [...new Set(filtered.map(r=>r['SelectTrade']).filter(Boolean))].sort();
+  const statuses = [...new Set(filtered.map(r=>r['Status']).filter(Boolean))].sort();
+
+  const lf = document.getElementById('log-location-filter');
+  const tf = document.getElementById('log-trade-filter');
+  const sf = document.getElementById('log-status-filter');
+  if (!lf) return;
+
+  const curL = lf.value, curT = tf.value, curS = sf.value;
+  lf.innerHTML = '<option value="">All Locations</option>' + locs.map(l=>`<option value="${l}"${l===curL?' selected':''}>${l}</option>`).join('');
+  tf.innerHTML = '<option value="">All Trades</option>'    + trades.map(t=>`<option value="${t}"${t===curT?' selected':''}>${t}</option>`).join('');
+  sf.innerHTML = '<option value="">All Statuses</option>'  + statuses.map(s=>`<option value="${s}"${s===curS?' selected':''}>${s}</option>`).join('');
+}
+
+function renderScanLog() {
+  const lf  = document.getElementById('log-location-filter');
+  const tf  = document.getElementById('log-trade-filter');
+  const sf  = document.getElementById('log-status-filter');
+  const df  = document.getElementById('log-date-filter');
+  if (!lf) return;
+
+  logLocationFilter = lf.value;
+  logTradeFilter    = tf.value;
+  logStatusFilter   = sf.value;
+  logDateFilter     = df.value;
+
+  const now    = new Date();
+  const cutoff = logDateFilter ? new Date(now - logDateFilter * 86400000) : null;
+
+  let rows = filtered
+    .filter(r => (!logLocationFilter || r['Location'] === logLocationFilter))
+    .filter(r => (!logTradeFilter    || r['SelectTrade'] === logTradeFilter))
+    .filter(r => (!logStatusFilter   || r['Status'] === logStatusFilter))
+    .filter(r => (!cutoff            || r._ts >= cutoff))
+    .sort((a,b) => b._ts - a._ts);
+
+  // Active filter pill
+  const afd = document.getElementById('active-filter-display');
+  const activeFilters = [logLocationFilter, logTradeFilter, logStatusFilter].filter(Boolean);
+  afd.innerHTML = activeFilters.map(f =>
+    `<span class="active-filter-pill" onclick="clearLogFilters()">📍 ${f} ✕</span>`
+  ).join('');
+
+  document.getElementById('log-count').textContent = `${rows.length} record${rows.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('log-table-body');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">No records match the current filters</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const cfg = STATUS_CONFIG[r['Status']] || {color:'var(--muted)'};
+    const ts  = r._ts instanceof Date && !isNaN(r._ts)
+      ? r._ts.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+        r._ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})
+      : '—';
+    return `<tr>
+      <td class="td-ts">${ts}</td>
+      <td class="td-loc">${r['Location']||'—'}</td>
+      <td class="td-trade">${r['SelectTrade']||'—'}</td>
+      <td>${r['Task']||'—'}</td>
+      <td><span style="color:${cfg.color};font-weight:600;font-size:11px;">${r['Status']||'—'}</span></td>
+      <td>${r['VerifiedBy']||'—'}</td>
+      <td style="color:var(--muted);font-size:11px;">${r['Notes']||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearLogFilters() {
+  logLocationFilter = logTradeFilter = logStatusFilter = logDateFilter = '';
+  const lf = document.getElementById('log-location-filter');
+  const tf = document.getElementById('log-trade-filter');
+  const sf = document.getElementById('log-status-filter');
+  const df = document.getElementById('log-date-filter');
+  if (lf) lf.value = '';
+  if (tf) tf.value = '';
+  if (sf) sf.value = '';
+  if (df) df.value = '';
+  renderScanLog();
+}
+
+function filterLogByKPI(type) {
+  clearLogFilters();
+  const sf = document.getElementById('log-status-filter');
+  if (type === 'failed' && sf) {
+    sf.value = 'Failed Inspection';
+    logStatusFilter = 'Failed Inspection';
+  } else if (type === 'done' && sf) {
+    sf.value = 'Final Complete';
+    logStatusFilter = 'Final Complete';
+  }
+  renderScanLog();
+  document.getElementById('sec-wrap-scanlog').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function filterLogByLocation(location) {
+  clearLogFilters();
+  const lf = document.getElementById('log-location-filter');
+  if (lf) { lf.value = location; logLocationFilter = location; }
+  renderScanLog();
+  document.getElementById('sec-wrap-scanlog').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ═══════════════════════════════════════════════
