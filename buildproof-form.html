@@ -99,27 +99,23 @@
   select:disabled { opacity: 0.4; cursor: not-allowed; }
   textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
 
-  .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 7px; }
   .status-btn {
     background: var(--input-bg); border: 1.5px solid var(--border); border-radius: var(--radius);
-    color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
-    padding: 10px 4px 8px; cursor: pointer; text-align: center;
-    transition: all 0.15s; -webkit-tap-highlight-color: transparent; line-height: 1.3;
+    color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600;
+    padding: 7px 2px 6px; cursor: pointer; text-align: center;
+    transition: all 0.15s; -webkit-tap-highlight-color: transparent; line-height: 1.2;
   }
-  .status-btn .dot { display: block; width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 5px; background: var(--border); transition: background 0.15s; }
+  .status-btn .dot { display: block; width: 8px; height: 8px; border-radius: 50%; margin: 0 auto 4px; background: var(--border); transition: background 0.15s; }
   .status-btn:hover { border-color: var(--muted); color: var(--text); }
-  .status-btn[data-value="In Progress"].active         { border-color: var(--blue);   color: var(--blue);   background: rgba(52,152,219,0.1); }
-  .status-btn[data-value="In Progress"].active .dot    { background: var(--blue); }
-  .status-btn[data-value="Ready for Inspection"].active      { border-color: var(--orange); color: var(--orange); background: rgba(245,166,35,0.1); }
-  .status-btn[data-value="Ready for Inspection"].active .dot { background: var(--orange); }
-  .status-btn[data-value="Passed Inspection"].active   { border-color: var(--green); color: var(--green); background: rgba(46,204,113,0.1); }
+  .status-btn[data-value="In Progress"].active          { border-color: var(--blue);   color: var(--blue);   background: rgba(52,152,219,0.1); }
+  .status-btn[data-value="In Progress"].active .dot     { background: var(--blue); }
+  .status-btn[data-value="Inspection Ready"].active     { border-color: var(--orange); color: var(--orange); background: rgba(245,166,35,0.1); }
+  .status-btn[data-value="Inspection Ready"].active .dot{ background: var(--orange); }
+  .status-btn[data-value="Passed Inspection"].active    { border-color: var(--green); color: var(--green); background: rgba(46,204,113,0.1); }
   .status-btn[data-value="Passed Inspection"].active .dot { background: var(--green); }
-  .status-btn[data-value="Failed Inspection"].active   { border-color: var(--red); color: var(--red); background: rgba(231,76,60,0.1); }
-  .status-btn[data-value="Failed Inspection"].active .dot { background: var(--red); }
-  .status-btn[data-value="Correction Complete"].active { border-color: var(--purple); color: var(--purple); background: rgba(155,89,182,0.1); }
-  .status-btn[data-value="Correction Complete"].active .dot { background: var(--purple); }
-  .status-btn[data-value="Final Complete"].active      { border-color: var(--teal); color: var(--teal); background: rgba(26,188,156,0.1); }
-  .status-btn[data-value="Final Complete"].active .dot { background: var(--teal); }
+  .status-btn[data-value="Punch Complete"].active       { border-color: var(--teal); color: var(--teal); background: rgba(26,188,156,0.1); }
+  .status-btn[data-value="Punch Complete"].active .dot  { background: var(--teal); }
 
   .photo-drop {
     background: var(--input-bg); border: 1.5px dashed var(--border);
@@ -162,7 +158,7 @@
   .new-scan-btn { background: transparent; border: 1.5px solid var(--accent); border-radius: var(--radius); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; padding: 12px 32px; cursor: pointer; margin-top: 28px; transition: background 0.2s; display: inline-block; }
   .new-scan-btn:hover { background: rgba(245,166,35,0.1); }
 
-  @media (max-width: 360px) { .status-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .status-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -242,11 +238,9 @@
     <label>Status <span class="req">*</span></label>
     <div class="status-grid">
       <button type="button" class="status-btn" data-value="In Progress" onclick="setStatus(this)"><span class="dot"></span>In Progress</button>
-      <button type="button" class="status-btn" data-value="Ready for Inspection" onclick="setStatus(this)"><span class="dot"></span>Ready for Insp.</button>
-      <button type="button" class="status-btn" data-value="Passed Inspection" onclick="setStatus(this)"><span class="dot"></span>Passed Insp.</button>
-      <button type="button" class="status-btn" data-value="Failed Inspection" onclick="setStatus(this)"><span class="dot"></span>Failed Insp.</button>
-      <button type="button" class="status-btn" data-value="Correction Complete" onclick="setStatus(this)"><span class="dot"></span>Correction Complete</button>
-      <button type="button" class="status-btn" data-value="Final Complete" onclick="setStatus(this)"><span class="dot"></span>Final Complete</button>
+      <button type="button" class="status-btn" data-value="Inspection Ready" onclick="setStatus(this)"><span class="dot"></span>Inspection Ready</button>
+      <button type="button" class="status-btn" data-value="Passed Inspection" onclick="setStatus(this)"><span class="dot"></span>Passed Inspection</button>
+      <button type="button" class="status-btn" data-value="Punch Complete" onclick="setStatus(this)"><span class="dot"></span>Punch Complete</button>
     </div>
     <input type="hidden" id="status" value="">
   </div>
@@ -289,88 +283,57 @@ const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzYNKWs31VwrqwB4ZRK
 
 const TRADE_TASKS = {
   "Access Control":["Install Device","Run Cabling","Terminate Connections","Program System","System Test"],
-  "Acoustical Ceilings":["Install Grid","Install Ceiling Tile","Install Access Panels","Adjust Ceiling System","Final Inspection"],
-  "Aluminum":["Install Frames","Install Panels","Seal Joints","Adjust Alignment","Final Inspection"],
-  "Appliances":["Deliver Appliance","Install Appliance","Connect Utilities","Operational Test","Final Inspection"],
-  "Asphalt Paving":["Prepare Subgrade","Place Asphalt","Compact Surface","Stripe Pavement","Final Inspection"],
-  "Balcony Waterproofing":["Surface Preparation","Apply Waterproofing","Seal Penetrations","Water Test","Final Inspection"],
-  "Blinds / Window Treatments":["Measure Opening","Install Mounting Hardware","Install Blinds","Adjust Operation","Final Inspection"],
-  "Building Automation Systems (BAS)":["Install Controllers","Run Control Wiring","Program System","System Integration","Functional Test"],
-  "Cabinetry":["Deliver Cabinets","Install Base Cabinets","Install Wall Cabinets","Adjust Doors","Final Inspection"],
-  "Carpentry – Finish":["Install Trim","Install Doors","Install Hardware","Adjust Components","Final Inspection"],
-  "Carpentry – Framing":["Layout Walls","Install Framing","Install Blocking","Frame Openings","Inspection"],
-  "Caulking / Sealants":["Surface Preparation","Apply Sealant","Tool Joint","Cure Verification","Final Inspection"],
-  "CCTV":["Install Cameras","Run Cabling","Terminate Connections","Configure System","Operational Test"],
-  "Cleaning":["Rough Clean","Pre-Clean","Final Clean","Spot Clean","Punch Clean"],
-  "Concrete":["Formwork Setup","Install Reinforcement","Concrete Placement","Concrete Finishing","Final Inspection"],
-  "Concrete Cutting / Coring":["Layout Cuts","Perform Cutting","Perform Coring","Cleanup Area","Final Inspection"],
-  "Concrete-Gypsum":["Surface Preparation","Apply Slurry","Thickness Check","Repair Areas","Inspection"],
-  "Countertops":["Measure Area","Deliver Countertop","Install Countertop","Seal Joints","Final Inspection"],
-  "Crane Operations":["Setup Crane","Lift Operation","Position Material","Secure Load","Shutdown Crane"],
-  "Curtain Wall":["Install Anchors","Install Frames","Install Glass Panels","Seal System","Water Test"],
-  "Demolition":["Protect Area","Remove Materials","Sort Debris","Dispose Waste","Final Inspection"],
-  "Doors – Commercial":["Install Frame","Hang Door","Install Hardware","Adjust Door","Final Inspection"],
-  "Doors – Overhead":["Install Track","Install Door Panels","Install Motor","Operational Test","Final Inspection"],
-  "Drywall":["Hang Drywall","Tape Joints","Apply Joint Compound","Apply Texture","Sand Surface","Final Inspection"],
-  "Earthwork":["Site Clearing","Excavation","Fill Placement","Compaction","Final Inspection"],
+  "Acoustical Ceilings":["Install Grid","Install Ceiling Tile","Install Access Panels","Adjust Ceiling System"],
+  "Appliances":["Deliver Appliance","Install Appliance","Connect Utilities","Operational Test"],
+  "Asphalt Paving":["Prepare Subgrade","Place Asphalt","Compact Surface","Stripe Pavement"],
+  "Blinds / Window Treatments":["Measure Opening","Install Mounting Hardware","Install Blinds","Adjust Operation"],
+  "Building Automation Systems (BAS)":["Install Controllers","Run Control Wiring","Program System","Functional Test"],
+  "Cabinetry":["Deliver Cabinets","Install Base Cabinets","Install Wall Cabinets","Adjust Doors"],
+  "Carpentry – Finish":["Install Trim","Install Doors","Install Hardware","Adjust Components"],
+  "Carpentry – Framing":["Layout Walls","Install Framing","Install Blocking","Frame Openings"],
+  "Caulking / Sealants":["Surface Preparation","Apply Sealant","Tool Joint","Cure Verification"],
+  "Cleaning":["Rough Clean","Pre-Clean","Final Clean","Punch Clean"],
+  "Concrete":["Formwork Setup","Install Reinforcement","Concrete Placement","Concrete Finishing","Cutting / Coring","Curb & Gutter","Sidewalk","Paving"],
+  "Countertops":["Measure Area","Deliver Countertop","Install Countertop","Seal Joints"],
+  "Demolition":["Protect Area","Remove Materials","Sort Debris","Dispose Waste"],
+  "Doors – Commercial":["Install Frame","Hang Door","Install Hardware","Adjust Door"],
+  "Doors – Overhead":["Install Track","Install Door Panels","Install Motor","Operational Test"],
+  "Drywall":["Hang Drywall","Tape Joints","Apply Joint Compound","Apply Texture","Sand Surface"],
   "Electrical":["Install Conduit","Pull Wire","Install Devices","Terminate Connections","Operational Test"],
-  "Elevators":["Install Rails","Install Cab","Install Controls","System Test","Final Inspection"],
-  "Electronic Security":["Install Sensors","Install Panels","Program System","System Test","Final Inspection"],
-  "Environmental Remediation":["Containment Setup","Remove Hazardous Material","Decontamination","Air Testing","Final Clearance"],
-  "Excavation":["Excavate Area","Install Shoring","Grade Subgrade","Backfill","Inspection"],
-  "Fencing":["Install Posts","Install Panels","Install Gates","Adjust Alignment","Final Inspection"],
-  "Fire Alarm":["Install Devices","Run Wiring","Program System","System Test","Final Inspection"],
-  "Fire Protection – Fireproofing":["Surface Preparation","Apply Fireproofing","Thickness Check","Repair Areas","Inspection"],
-  "Fire Sprinkler":["Install Piping","Install Heads","Hydrostatic Test","Flush System","Final Inspection"],
-  "Flooring - Carpet":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
-  "Flooring - Tile":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
-  "Flooring - Vinyl":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
-  "Flooring - Wood":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface","Final Inspection"],
-  "Foundations":["Excavate Footings","Install Reinforcement","Concrete Placement","Strip Forms","Inspection"],
-  "Framing – Metal Stud":["Layout Walls","Install Studs","Install Tracks","Install Blocking","Inspection"],
-  "Gas Lines":["Install Piping","Pressure Test","Connect Equipment","Leak Check","Inspection"],
-  "Glazing/Storefront":["Install Frames","Install Glass","Seal System","Adjust Panels","Final Inspection"],
-  "Grading":["Rough Grade","Final Grade","Compaction","Slope Verification","Inspection"],
-  "Granite / Stone":["Measure Area","Deliver Material","Install Stone","Seal Surface","Final Inspection"],
-  "Gutters":["Install Gutters","Install Downspouts","Seal Joints","Water Test","Inspection"],
+  "Fencing":["Install Posts","Install Panels","Install Gates","Adjust Alignment"],
+  "Fire Alarm":["Install Devices","Run Wiring","Program System","System Test"],
+  "Fire Protection – Fireproofing":["Surface Preparation","Apply Fireproofing","Thickness Check","Repair Areas"],
+  "Fire Sprinkler":["Install Piping","Install Heads","Hydrostatic Test","Flush System"],
+  "Flooring":["Prepare Subfloor","Install Flooring","Apply Finish","Clean Surface"],
+  "Gas Lines":["Install Piping","Pressure Test","Connect Equipment","Leak Check"],
+  "Glazing / Storefront":["Install Frames","Install Glass","Seal System","Adjust Panels"],
+  "Granite / Stone":["Measure Area","Deliver Material","Install Stone","Seal Surface"],
+  "Gutters":["Install Gutters","Install Downspouts","Seal Joints","Water Test"],
   "HVAC":["Install Equipment","Install Ductwork","Connect Systems","Start Up System","Operational Test"],
-  "HVAC Controls":["Install Controllers","Run Wiring","Program Controls","Functional Test","Inspection"],
-  "Insulation":["Install Insulation","Seal Gaps","Install Vapor Barrier","Inspection","Final Check"],
-  "Ironwork":["Install Structural Steel","Bolt Connections","Weld Connections","Alignment Check","Inspection"],
-  "Landscaping":["Site Preparation","Install Planting","Install Irrigation","Install Sod","Final Inspection"],
-  "Low Voltage":["Install Cabling","Terminate Connections","Install Devices","System Test","Final Inspection"],
-  "Masonry-Brick":["Layout Work","Install Masonry","Install Lintels","Tool Joints","Final Inspection"],
-  "Masonry-CMU":["Layout Work","Install Masonry","Install Lintels","Tool Joints","Final Inspection"],
-  "Masonry-Stone":["Layout Work","Install Masonry","Tool Joints","Clean Surface","Final Inspection"],
-  "Mechanical":["Install Equipment","Install Piping","Connect Systems","System Test","Final Inspection"],
-  "Millwork/Finish Hardware":["Install Components","Adjust Components","Secure Assemblies","Touch Up","Final Inspection"],
-  "Painting-Exterior":["Surface Preparation","Prime Surface","Apply Paint","Touch Up","Final Inspection"],
-  "Painting-Interior":["Surface Preparation","Prime Surface","Apply Paint","Touch Up","Final Inspection"],
-  "Paving":["Prepare Base","Install Pavement","Compact Surface","Stripe Surface","Inspection"],
-  "Plumbing":["Install Piping","Install Fixtures","Pressure Test","Connect Systems","Inspection"],
-  "Post-Tension":["Install Tendons","Stress Tendons","Grout Anchors","Inspection","Final Review"],
-  "Precast Parking Decks":["Install Bearing Pads","Erect Columns","Install Beams","Set Double Tee Deck Panels","Grout Connections","Install Expansion Joints"],
-  "Roofing":["Install Underlayment","Install Roofing System","Seal Penetrations","Water Test","Inspection"],
-  "Scaffolding":["Assemble Scaffold","Inspect Structure","Adjust Scaffold","Disassemble Scaffold","Final Inspection"],
-  "Sheet Metal":["Install Ductwork","Install Supports","Seal Joints","Pressure Test","Inspection"],
-  "Siding - Cement":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
-  "Siding - Metal":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
-  "Siding - Vinyl":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
-  "Siding - Wood":["Install Panels","Install Trim","Seal Joints","Adjust Panels","Inspection"],
-  "Signage - Exterior":["Install Mounts","Install Sign","Connect Power","Test Lighting","Inspection"],
-  "Signage - Interior":["Install Mounts","Install Sign","Connect Power","Test Lighting","Inspection"],
-  "Site Utilities":["Install Piping","Install Structures","Backfill","Pressure Test","Inspection"],
-  "Solar":["Install Racking","Install Panels","Run Wiring","System Test","Inspection"],
-  "Steel Erection":["Erect Steel","Bolt Connections","Weld Connections","Alignment Check","Inspection"],
-  "Structural Steel Fabrication":["Fabricate Components","Weld Assemblies","Quality Check","Deliver Steel","Inspection"],
-  "Stucco/EIFS":["Install Lath","Apply Scratch Coat","Apply Finish Coat","Cure Surface","Inspection"],
-  "Surveying":["Establish Control","Layout Points","Verify Elevations","As-Built Survey","Final Report"],
-  "Tiling":["Prepare Surface","Install Tile","Grout Joints","Seal Surface","Inspection"],
-  "Traffic Control":["Install Barriers","Install Signage","Direct Traffic","Remove Barriers","Inspection"],
-  "Underground Utilities":["Excavate Trench","Install Pipe","Backfill","Pressure Test","Inspection"],
-  "Waterproofing":["Surface Preparation","Apply Membrane","Seal Penetrations","Water Test","Inspection"],
-  "Welding":["Prepare Joint","Perform Weld","Grind Surface","Quality Check","Inspection"],
-  "Windows":["Install Frames","Install Glass","Seal Perimeter","Adjust Operation","Inspection"]
+  "HVAC Controls":["Install Controllers","Run Wiring","Program Controls","Functional Test"],
+  "Insulation":["Install Insulation","Seal Gaps","Install Vapor Barrier"],
+  "Landscaping":["Site Preparation","Install Planting","Install Irrigation","Install Sod"],
+  "Low Voltage":["Install Cabling","Terminate Connections","Install Devices","System Test"],
+  "Masonry":["Layout Work","Install Masonry","Install Lintels","Tool Joints","Clean Surface"],
+  "Mechanical":["Install Equipment","Install Piping","Connect Systems","System Test"],
+  "Millwork / Finish Hardware":["Install Components","Adjust Components","Secure Assemblies","Touch Up"],
+  "Painting":["Surface Preparation","Prime Surface","Apply Paint","Touch Up"],
+  "Plumbing":["Install Piping","Install Fixtures","Pressure Test","Connect Systems"],
+  "Post-Tension":["Install Tendons","Stress Tendons","Grout Anchors"],
+  "Precast":["Install Bearing Pads","Erect Columns","Install Beams","Set Deck Panels","Grout Connections","Install Expansion Joints"],
+  "Roofing":["Install Underlayment","Install Roofing System","Seal Penetrations","Water Test"],
+  "Sheet Metal":["Install Ductwork","Install Supports","Seal Joints","Pressure Test"],
+  "Siding":["Install Panels","Install Trim","Seal Joints","Adjust Panels"],
+  "Signage":["Install Mounts","Install Sign","Connect Power","Test Lighting"],
+  "Site Work":["Site Clearing","Excavation","Grading","Utility Installation","Backfill","Compaction"],
+  "Solar":["Install Racking","Install Panels","Run Wiring","System Test"],
+  "Structural Steel":["Fabrication","Erect Steel","Bolt Connections","Weld Connections","Alignment Check"],
+  "Stucco / EIFS":["Install Lath","Apply Scratch Coat","Apply Finish Coat","Cure Surface"],
+  "Surveying":["Establish Control","Layout Points","Verify Elevations","As-Built Survey"],
+  "Tiling":["Prepare Surface","Install Tile","Grout Joints","Seal Surface"],
+  "Waterproofing":["Surface Preparation","Apply Membrane","Seal Penetrations","Water Test"],
+  "Welding":["Prepare Joint","Perform Weld","Grind Surface","Quality Check"],
+  "Windows":["Install Frames","Install Glass","Seal Perimeter","Adjust Operation"]
 };
 
 (function init() {
