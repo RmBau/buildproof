@@ -257,6 +257,18 @@
 
   @media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
   /* ── Scan Log ── */
+  .th-filter { width:100%; margin-top:5px; background:rgba(0,0,0,0.2);
+    border:1px solid var(--border); border-radius:4px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:10px; font-weight:400;
+    padding:3px 6px; outline:none; cursor:pointer; letter-spacing:0; text-transform:none; }
+  .th-filter:focus { border-color:var(--accent); }
+  .th-filter option { background:var(--steel); }
+  .th-search { width:100%; margin-top:5px; background:rgba(0,0,0,0.2);
+    border:1px solid var(--border); border-radius:4px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:10px; font-weight:400;
+    padding:3px 6px; outline:none; letter-spacing:0; text-transform:none; }
+  .th-search:focus { border-color:var(--accent); }
+  .th-search::placeholder { color:var(--muted); }
   .scan-log-wrap { margin-top: 28px; }
   .scan-log-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
   .scan-filter { background:var(--steel); border:1px solid var(--border); border-radius:6px;
@@ -549,37 +561,50 @@
   <div class="scan-log-wrap" id="sec-wrap-scanlog">
     <div class="section-title" style="display:flex;align-items:center;gap:12px;">
       SCAN LOG
-      <span id="active-filter-display"></span>
       <span class="log-count" id="log-count"></span>
-    </div>
-    <div class="scan-log-filters">
-      <select class="scan-filter" id="log-location-filter" onchange="renderScanLog()">
-        <option value="">All Locations</option>
-      </select>
-      <select class="scan-filter" id="log-trade-filter" onchange="renderScanLog()">
-        <option value="">All Trades</option>
-      </select>
-      <select class="scan-filter" id="log-status-filter" onchange="renderScanLog()">
-        <option value="">All Statuses</option>
-      </select>
-      <select class="scan-filter" id="log-date-filter" onchange="renderScanLog()">
-        <option value="">All Dates</option>
-        <option value="1">Last 24 hours</option>
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-      </select>
-      <button class="scan-filter" onclick="clearLogFilters()" style="cursor:pointer;color:var(--muted);">✕ Clear</button>
+      <button class="scan-filter" onclick="clearLogFilters()" style="margin-left:auto;cursor:pointer;color:var(--muted);font-size:11px;padding:4px 12px;">✕ Clear Filters</button>
     </div>
     <div class="log-table-wrap">
       <table class="log-table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Location</th>
-            <th>Trade</th>
-            <th>Task</th>
-            <th>Status</th>
-            <th>Verified By</th>
+            <th>
+              Time
+              <select class="th-filter" id="log-date-filter" onchange="renderScanLog()">
+                <option value="">All Dates</option>
+                <option value="1">Last 24 hrs</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+            </th>
+            <th>
+              Location
+              <select class="th-filter" id="log-location-filter" onchange="renderScanLog()">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Trade
+              <select class="th-filter" id="log-trade-filter" onchange="renderScanLog()">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Task
+              <input class="th-search" id="log-task-filter" placeholder="Search…" oninput="renderScanLog()">
+            </th>
+            <th>
+              Status
+              <select class="th-filter" id="log-status-filter" onchange="renderScanLog()">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th>
+              Verified By
+              <select class="th-filter" id="log-verifiedby-filter" onchange="renderScanLog()">
+                <option value="">All</option>
+              </select>
+            </th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -990,21 +1015,23 @@ let logStatusFilter   = '';
 let logDateFilter     = '';
 
 function populateScanLogFilters() {
-  // Use allData so options never disappear when filters are active
-  const source   = (filtered && filtered.length > 0) ? filtered : allData;
-  const locs     = [...new Set(source.map(r=>r['Location']).filter(Boolean))].sort();
-  const trades   = [...new Set(source.map(r=>r['SelectTrade']).filter(Boolean))].sort();
-  const statuses = [...new Set(source.map(r=>r['Status']).filter(Boolean))].sort();
+  const source = (filtered && filtered.length > 0) ? filtered : allData;
+  const locs   = [...new Set(source.map(r=>r['Location']).filter(Boolean))].sort();
+  const trades = [...new Set(source.map(r=>r['SelectTrade']).filter(Boolean))].sort();
+  const stats  = [...new Set(source.map(r=>r['Status']).filter(Boolean))].sort();
+  const verifys= [...new Set(source.map(r=>r['VerifiedBy']).filter(Boolean))].sort();
 
   const lf = document.getElementById('log-location-filter');
   const tf = document.getElementById('log-trade-filter');
   const sf = document.getElementById('log-status-filter');
+  const vf = document.getElementById('log-verifiedby-filter');
   if (!lf) return;
 
-  const curL = lf.value, curT = tf.value, curS = sf.value;
-  lf.innerHTML = '<option value="">All Locations</option>' + locs.map(l=>`<option value="${l}"${l===curL?' selected':''}>${l}</option>`).join('');
-  tf.innerHTML = '<option value="">All Trades</option>'    + trades.map(t=>`<option value="${t}"${t===curT?' selected':''}>${t}</option>`).join('');
-  sf.innerHTML = '<option value="">All Statuses</option>'  + statuses.map(s=>`<option value="${s}"${s===curS?' selected':''}>${s}</option>`).join('');
+  const curL=lf.value, curT=tf.value, curS=sf.value, curV=vf?vf.value:'';
+  lf.innerHTML = '<option value="">All</option>' + locs.map(l=>`<option value="${l}"${l===curL?' selected':''}>${l}</option>`).join('');
+  tf.innerHTML = '<option value="">All</option>' + trades.map(t=>`<option value="${t}"${t===curT?' selected':''}>${t}</option>`).join('');
+  sf.innerHTML = '<option value="">All</option>' + stats.map(s=>`<option value="${s}"${s===curS?' selected':''}>${s}</option>`).join('');
+  if (vf) vf.innerHTML = '<option value="">All</option>' + verifys.map(v=>`<option value="${v}"${v===curV?' selected':''}>${v}</option>`).join('');
 }
 
 function renderScanLog() {
@@ -1012,12 +1039,16 @@ function renderScanLog() {
   const tf  = document.getElementById('log-trade-filter');
   const sf  = document.getElementById('log-status-filter');
   const df  = document.getElementById('log-date-filter');
+  const tkf = document.getElementById('log-task-filter');
+  const vf  = document.getElementById('log-verifiedby-filter');
   if (!lf) return;
 
   logLocationFilter = lf.value;
   logTradeFilter    = tf.value;
   logStatusFilter   = sf.value;
   logDateFilter     = df.value;
+  const taskSearch  = (tkf?.value || '').toLowerCase();
+  const verifiedBy  = vf?.value || '';
 
   const now    = new Date();
   const cutoff = logDateFilter ? new Date(now - logDateFilter * 86400000) : null;
@@ -1027,14 +1058,9 @@ function renderScanLog() {
     .filter(r => (!logTradeFilter    || r['SelectTrade'] === logTradeFilter))
     .filter(r => (!logStatusFilter   || r['Status'] === logStatusFilter))
     .filter(r => (!cutoff            || r._ts >= cutoff))
+    .filter(r => (!taskSearch        || (r['Task']||'').toLowerCase().includes(taskSearch)))
+    .filter(r => (!verifiedBy        || r['VerifiedBy'] === verifiedBy))
     .sort((a,b) => b._ts - a._ts);
-
-  // Active filter pill
-  const afd = document.getElementById('active-filter-display');
-  const activeFilters = [logLocationFilter, logTradeFilter, logStatusFilter].filter(Boolean);
-  afd.innerHTML = activeFilters.map(f =>
-    `<span class="active-filter-pill" onclick="clearLogFilters()">📍 ${f} ✕</span>`
-  ).join('');
 
   document.getElementById('log-count').textContent = `${rows.length} record${rows.length!==1?'s':''}`;
 
@@ -1064,26 +1090,25 @@ function renderScanLog() {
 
 function clearLogFilters() {
   logLocationFilter = logTradeFilter = logStatusFilter = logDateFilter = '';
-  const lf = document.getElementById('log-location-filter');
-  const tf = document.getElementById('log-trade-filter');
-  const sf = document.getElementById('log-status-filter');
-  const df = document.getElementById('log-date-filter');
-  if (lf) lf.value = '';
-  if (tf) tf.value = '';
-  if (sf) sf.value = '';
-  if (df) df.value = '';
+  ['log-location-filter','log-trade-filter','log-status-filter',
+   'log-date-filter','log-verifiedby-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const tkf = document.getElementById('log-task-filter');
+  if (tkf) tkf.value = '';
   renderScanLog();
 }
 
 function filterLogByKPI(type) {
   clearLogFilters();
   const sf = document.getElementById('log-status-filter');
-  if (type === 'failed' && sf) {
-    sf.value = 'Failed Inspection';
-    logStatusFilter = 'Failed Inspection';
-  } else if (type === 'done' && sf) {
-    sf.value = 'Final Complete';
-    logStatusFilter = 'Final Complete';
+  if (type === 'done' && sf) {
+    sf.value = 'Punch Complete';
+    logStatusFilter = 'Punch Complete';
+  } else if (type === 'inspection' && sf) {
+    sf.value = 'Passed Inspection';
+    logStatusFilter = 'Passed Inspection';
   }
   renderScanLog();
   document.getElementById('sec-wrap-scanlog').scrollIntoView({behavior:'smooth', block:'start'});
