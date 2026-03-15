@@ -359,6 +359,18 @@ const TRADE_TASKS = {
   if (!company && !project && !tagid)
     document.getElementById('no-tag-warning').style.display = 'block';
 
+  // Look up display name for company ID
+  if (company) {
+    fetch(WEBHOOK_URL + '?action=getClients')
+      .then(r => r.json())
+      .then(data => {
+        if (data.clients && data.clients[company]) {
+          document.getElementById('ctx-company').textContent = data.clients[company];
+        }
+      })
+      .catch(() => {}); // silently fail — CompanyID fallback stays
+  }
+
   const now = new Date();
   document.getElementById('header-ts').innerHTML =
     now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) +
