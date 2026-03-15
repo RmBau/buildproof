@@ -412,6 +412,19 @@ function photoSelected(input) {
   nameEl.textContent = '📎 ' + file.name;
   nameEl.style.display = 'block';
 
+  // Check for HEIC — not supported
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  if (name.endsWith('.heic') || name.endsWith('.heif') || type.includes('heic') || type.includes('heif')) {
+    nameEl.textContent = '⚠ HEIC format not supported';
+    nameEl.style.color = '#e74c3c';
+    nameEl.style.display = 'block';
+    showToast('⚠ Change iPhone camera to JPEG: Settings → Camera → Formats → Most Compatible', 'error');
+    photoBase64 = '';
+    return;
+  }
+  nameEl.style.color = '';
+
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
@@ -432,6 +445,12 @@ function photoSelected(input) {
       photoBase64 = compressed.substring(comma + 1);
       photoMime   = 'image/jpeg';
       if (previewEl) { previewEl.src = compressed; previewEl.style.display = 'block'; }
+    };
+    img.onerror = () => {
+      nameEl.textContent = '⚠ Could not read photo — use JPEG format';
+      nameEl.style.color = '#e74c3c';
+      showToast('⚠ Settings → Camera → Formats → Most Compatible', 'error');
+      photoBase64 = '';
     };
     img.src = e.target.result;
   };
