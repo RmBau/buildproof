@@ -412,36 +412,32 @@ function photoSelected(input) {
   nameEl.textContent = '📎 ' + file.name;
   nameEl.style.display = 'block';
 
+  const MAX_BYTES = 3.5 * 1024 * 1024; // 3.5MB raw file limit
+
+  // Show file size feedback
+  const sizeMB = (file.size / (1024*1024)).toFixed(1);
+  nameEl.textContent = '📎 ' + file.name + ' (' + sizeMB + 'MB)';
+  nameEl.style.color = '';
+  nameEl.style.display = 'block';
+
+  if (file.size > MAX_BYTES) {
+    nameEl.textContent = '⚠ Photo too large (' + sizeMB + 'MB) — please retake';
+    nameEl.style.color = '#e74c3c';
+    showToast('⚠ Photo too large. Go to iPhone Settings → Camera → Formats → Most Compatible', 'error');
+    photoBase64 = '';
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = e => {
-    const raw = e.target.result;
+    const raw   = e.target.result;
+    const comma = raw.indexOf(',');
+    const mime  = raw.substring(5, raw.indexOf(';'));
 
-    // Detect HEIC by magic bytes — first 12 bytes signature
-    const arr = new Uint8Array(e.target.result.length > 12 ? 12 : e.target.result.length);
-    // Re-read as array buffer to check magic bytes
-    const abReader = new FileReader();
-    abReader.onload = ab => {
-      const bytes = new Uint8Array(ab.target.result.slice(4, 12));
-      const sig = String.fromCharCode(...bytes);
-      const isHeic = sig.includes('ftyp') ||
-                     file.name.toLowerCase().includes('.heic') ||
-                     file.name.toLowerCase().includes('.heif') ||
-                     file.type.toLowerCase().includes('heic') ||
-                     file.type.toLowerCase().includes('heif');
-
-      if (isHeic) {
-        nameEl.textContent = '⚠ HEIC not supported — use JPEG';
-        nameEl.style.color = '#e74c3c';
-        nameEl.style.display = 'block';
-        showToast('⚠ Fix: iPhone Settings → Camera → Formats → Most Compatible', 'error');
-        photoBase64 = '';
-        return;
-      }
-      nameEl.style.color = '';
-
-      // Load as image and compress
-      const img = new Image();
-      img.onload = () => {
+    // Try canvas compression for JPEG/PNG — fall back to raw for anything else
+    const img = new Image();
+    img.onload = () => {
+      try {
         const MAX = 1200;
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
@@ -453,21 +449,33 @@ function photoSelected(input) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
         const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        const comma = compressed.indexOf(',');
-        photoBase64 = compressed.substring(comma + 1);
+        // toDataURL returns 'data:,' if it failed — check length
+        if (compressed.length < 100) throw new Error('canvas export failed');
+        const c2 = compressed.indexOf(',');
+        photoBase64 = compressed.substring(c2 + 1);
         photoMime   = 'image/jpeg';
+        const kb = Math.round(photoBase64.length * 0.75 / 1024);
+        nameEl.textContent = '✓ Photo ready (' + kb + 'KB)';
+        nameEl.style.color = '#2ecc71';
         if (previewEl) { previewEl.src = compressed; previewEl.style.display = 'block'; }
-      };
-      img.onerror = () => {
-        nameEl.textContent = '⚠ Could not read photo — use JPEG';
-        nameEl.style.color = '#e74c3c';
-        nameEl.style.display = 'block';
-        showToast('⚠ Fix: iPhone Settings → Camera → Formats → Most Compatible', 'error');
-        photoBase64 = '';
-      };
-      img.src = raw;
+      } catch(err) {
+        // Canvas failed — use raw base64 as fallback
+        photoBase64 = raw.substring(comma + 1);
+        photoMime   = mime || 'image/jpeg';
+        const kb = Math.round(photoBase64.length * 0.75 / 1024);
+        nameEl.textContent = '✓ Photo ready (' + kb + 'KB)';
+        nameEl.style.color = '#2ecc71';
+        if (previewEl) { previewEl.src = raw; previewEl.style.display = 'block'; }
+      }
     };
-    abReader.readAsArrayBuffer(file);
+    img.onerror = () => {
+      // Image failed to load entirely — warn user
+      nameEl.textContent = '⚠ Could not read photo — try Settings → Camera → Formats → Most Compatible';
+      nameEl.style.color = '#e74c3c';
+      showToast('⚠ iPhone Settings → Camera → Formats → Most Compatible', 'error');
+      photoBase64 = '';
+    };
+    img.src = raw;
   };
   reader.readAsDataURL(file);
 }
