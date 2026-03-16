@@ -260,6 +260,10 @@
     </div>
     <img id="photo-preview" src="" alt="Preview"
       style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid var(--border);">
+    <div id="photo-warning" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:6px;">
+      <div style="color:#e74c3c;font-size:12px;font-weight:600;margin-bottom:4px;">⚠ Photo could not be saved</div>
+      <div style="color:#c8d8e8;font-size:11px;line-height:1.5;">Your scan will still submit without the photo.<br>To enable photos: iPhone <b>Settings → Camera → Formats → Most Compatible</b></div>
+    </div>
   </div>
 
   <input type="hidden" id="h-timestamp">
@@ -457,20 +461,30 @@ function photoSelected(input) {
         nameEl.style.color = '#2ecc71';
         if (previewEl) { previewEl.src = compressed; previewEl.style.display = 'block'; }
       } catch(err) {
-        // Canvas failed — use raw base64 as fallback
-        photoBase64 = raw.substring(comma + 1);
-        photoMime   = mime || 'image/jpeg';
-        const kb = Math.round(photoBase64.length * 0.75 / 1024);
-        nameEl.textContent = '✓ Photo ready (' + kb + 'KB)';
-        nameEl.style.color = '#2ecc71';
-        if (previewEl) { previewEl.src = raw; previewEl.style.display = 'block'; }
+        // Canvas failed — check if mime is supported before using raw fallback
+        const supported = mime === 'image/jpeg' || mime === 'image/png' || mime === 'image/webp';
+        if (supported) {
+          photoBase64 = raw.substring(comma + 1);
+          photoMime   = mime;
+          const kb = Math.round(photoBase64.length * 0.75 / 1024);
+          nameEl.textContent = '✓ Photo ready (' + kb + 'KB)';
+          nameEl.style.color = '#2ecc71';
+          if (previewEl) { previewEl.src = raw; previewEl.style.display = 'block'; }
+        } else {
+          nameEl.textContent = '⚠ Photo format not supported — scan will submit without photo';
+          nameEl.style.color = '#e74c3c';
+          const warn = document.getElementById('photo-warning');
+          if (warn) warn.style.display = 'block';
+          photoBase64 = '';
+        }
       }
     };
     img.onerror = () => {
-      // Image failed to load entirely — warn user
-      nameEl.textContent = '⚠ Could not read photo — try Settings → Camera → Formats → Most Compatible';
+      // Photo format not supported — warn but allow submission without photo
+      nameEl.textContent = '⚠ Photo format not supported — scan will submit without photo';
       nameEl.style.color = '#e74c3c';
-      showToast('⚠ iPhone Settings → Camera → Formats → Most Compatible', 'error');
+      const warn = document.getElementById('photo-warning');
+      if (warn) warn.style.display = 'block';
       photoBase64 = '';
     };
     img.src = raw;
@@ -651,6 +665,8 @@ function resetForm() {
   document.getElementById('photo-name').style.display = 'none';
   const prev = document.getElementById('photo-preview');
   if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  const warn = document.getElementById('photo-warning');
+  if (warn) warn.style.display = 'none';
   photoBase64 = ''; photoMime = '';
   const photoInput = document.getElementById('photo');
   if (photoInput) photoInput.value = '';
