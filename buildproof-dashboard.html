@@ -256,6 +256,35 @@
   .kpi-card:nth-child(3){animation-delay:0.15s} .kpi-card:nth-child(4){animation-delay:0.20s}
 
   @media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
+  /* ── PIN Screen ── */
+  .pin-overlay { display:none; position:fixed; inset:0; background:var(--navy);
+    z-index:2000; align-items:center; justify-content:center; flex-direction:column; }
+  .pin-overlay.active { display:flex; }
+  .pin-box { background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:40px 36px; width:100%; max-width:360px; text-align:center; }
+  .pin-logo { display:flex; align-items:center; justify-content:center; gap:10px;
+    margin-bottom:28px; }
+  .pin-logo-badge { width:36px; height:36px; background:var(--accent); border-radius:7px;
+    display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .pin-logo-text { font-size:18px; font-weight:800; color:var(--white); letter-spacing:1px; }
+  .pin-logo-text span { color:var(--accent); }
+  .pin-title { font-size:15px; font-weight:700; color:var(--white); margin-bottom:6px; }
+  .pin-subtitle { font-size:12px; color:var(--muted); margin-bottom:28px; }
+  .pin-dots { display:flex; justify-content:center; gap:12px; margin-bottom:24px; }
+  .pin-dot { width:14px; height:14px; border-radius:50%; background:var(--border);
+    transition:background 0.15s; }
+  .pin-dot.filled { background:var(--accent); }
+  .pin-dot.error  { background:var(--red-l); }
+  .pin-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .pin-key { background:var(--steel); border:1px solid var(--border); border-radius:10px;
+    color:var(--white); font-family:'DM Sans',sans-serif; font-size:20px; font-weight:600;
+    padding:16px; cursor:pointer; transition:all 0.1s; -webkit-tap-highlight-color:transparent; }
+  .pin-key:hover  { border-color:var(--accent); background:rgba(245,166,35,0.08); }
+  .pin-key:active { transform:scale(0.95); }
+  .pin-key.del    { font-size:16px; color:var(--muted); }
+  .pin-key.empty  { background:transparent; border-color:transparent; cursor:default; }
+  .pin-error { font-size:12px; color:var(--red-l); margin-top:16px; min-height:18px; }
+  .pin-lockout { font-size:12px; color:var(--red-l); margin-top:16px; }
   /* ── Photo Modal ── */
   .photo-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
     z-index:1000; align-items:center; justify-content:center; padding:20px; }
@@ -645,6 +674,39 @@
 
 </div>
 
+<!-- ── PIN Screen ── -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-box">
+    <div class="pin-logo">
+      <div class="pin-logo-badge">🔒</div>
+      <div class="pin-logo-text">BUILD<span>PROOF</span></div>
+    </div>
+    <div class="pin-title" id="pin-title">Enter your PIN</div>
+    <div class="pin-subtitle" id="pin-subtitle">Contact your BuildProof representative if you need access.</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key empty" disabled></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
 <!-- ── Photo Modal ── -->
 <div class="photo-modal-overlay" id="photo-modal" onclick="closePhotoModal(event)">
   <div class="photo-modal">
@@ -832,6 +894,7 @@ async function loadClients() {
     const json = await res.json();
     if (json.result === 'success') {
       CLIENT_NAMES = json.clients;
+      if (json.pins) clientPins = json.pins;
       // Refresh the header pill if locked view is active
       if (lockedCompany || lockedProject) initURL();
     }
@@ -1205,11 +1268,114 @@ function closePhotoModal(e) {
 }
 
 // ═══════════════════════════════════════════════
+// PIN AUTH
+// ═══════════════════════════════════════════════
+let pinEntry   = '';
+let pinAttempts = 0;
+const PIN_SESSION_KEY  = () => `bp_pin_${lockedCompany}`;
+const PIN_LOCKOUT_KEY  = () => `bp_lock_${lockedCompany}`;
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
+
+function pinKey(digit) {
+  const lockUntil = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY()) || '0');
+  if (Date.now() < lockUntil) { showPinLockout(lockUntil); return; }
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updatePinDots();
+  if (pinEntry.length === 4) setTimeout(checkPin, 120);
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots(state) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.className = 'pin-dot';
+    if (state === 'error') dot.classList.add('error');
+    else if (i < pinEntry.length) dot.classList.add('filled');
+  }
+}
+
+function showPinLockout(until) {
+  const remaining = Math.ceil((until - Date.now()) / 1000);
+  document.getElementById('pin-error').textContent =
+    `Too many attempts. Try again in ${remaining}s.`;
+}
+
+async function checkPin() {
+  // Get PIN from clients data
+  const stored = clientPins[lockedCompany];
+  if (!stored) {
+    // No PIN set — allow access (backwards compatible)
+    grantPinAccess(); return;
+  }
+  if (pinEntry === stored.toString()) {
+    pinAttempts = 0;
+    localStorage.setItem(PIN_SESSION_KEY(), Date.now() + (8 * 60 * 60 * 1000)); // 8hr session
+    grantPinAccess();
+  } else {
+    pinAttempts++;
+    pinEntry = '';
+    updatePinDots('error');
+    if (pinAttempts >= MAX_ATTEMPTS) {
+      const lockUntil = Date.now() + LOCKOUT_MS;
+      localStorage.setItem(PIN_LOCKOUT_KEY(), lockUntil);
+      document.getElementById('pin-error').textContent =
+        'Too many attempts. Locked for 5 minutes.';
+    } else {
+      document.getElementById('pin-error').textContent =
+        `Incorrect PIN. ${MAX_ATTEMPTS - pinAttempts} attempt${MAX_ATTEMPTS - pinAttempts !== 1 ? 's' : ''} remaining.`;
+    }
+    setTimeout(() => {
+      updatePinDots();
+      document.getElementById('pin-error').textContent = '';
+    }, 1200);
+  }
+}
+
+function grantPinAccess() {
+  document.getElementById('pin-overlay').classList.remove('active');
+}
+
+function checkPinSession() {
+  // Only show PIN for locked client views
+  if (!lockedCompany) return;
+  // Check lockout
+  const lockUntil = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY()) || '0');
+  if (Date.now() < lockUntil) {
+    document.getElementById('pin-overlay').classList.add('active');
+    showPinLockout(lockUntil);
+    setInterval(() => {
+      const l = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY()) || '0');
+      if (Date.now() >= l) location.reload();
+      else showPinLockout(l);
+    }, 1000);
+    return;
+  }
+  // Check valid session
+  const session = parseInt(localStorage.getItem(PIN_SESSION_KEY()) || '0');
+  if (Date.now() < session) return; // valid session — no PIN needed
+  // No valid session — show PIN
+  document.getElementById('pin-overlay').classList.add('active');
+}
+
+// clientPins populated after getClients loads
+let clientPins = {};
+
+// ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 initURL();
 applyPrefsToDOM(loadPrefs());
-loadClients().then(() => loadData());
+loadClients().then(() => {
+  checkPinSession();
+  loadData();
+});
 setInterval(loadData, 60000);
 setInterval(loadClients, 300000); // refresh client names every 5 min
 </script>
