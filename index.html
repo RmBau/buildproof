@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BuildProof — Real-Time Field Verification for Construction</title>
-<link rel="canonical" href="https://www.getbuildproof.com">
-<meta name="description" content="Know exactly what got built today. BuildProof uses NFC tags to log real-time work verification directly from the field to your dashboard.">
+<title>VeriSite — Real-Time Field Verification for Construction</title>
+<link rel="canonical" href="https://www.verisite.build">
+<meta name="description" content="Know exactly what got built today. VeriSite uses NFC tags to log real-time work verification directly from the field to your dashboard.">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -437,7 +437,7 @@
         <path d="M7 18l3.5 3.5L17 15" stroke="#0a0a0a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <span class="nav-name">BuildProof</span>
+    <span class="nav-name">VeriSite</span>
   </a>
   <div class="nav-links">
     <a href="#problem">The Problem</a>
@@ -473,7 +473,7 @@
     <span class="hl-block hl-amber">Nobody knows.</span>
   </h1>
   <p class="hero-sub">
-    BuildProof puts <strong>NFC tags at every location</strong> on your job site. Workers scan. You see exactly what was done, when, by whom — in real time from any browser.
+    VeriSite puts <strong>NFC tags at every location</strong> on your job site. Workers scan. You see exactly what was done, when, by whom — in real time from any browser.
     <br><br>No app. No login for your crew. No guessing.
   </p>
   <div class="hero-actions">
@@ -542,7 +542,7 @@
         <div class="step-content">
           <div class="step-title">Tags Go On The Wall</div>
           <div class="step-body">We program NFC tags for every location on your project — rooms, floors, exterior zones. They go up before work starts. No wiring. No power. Just stick them up.</div>
-          <span class="step-tag">NTAG215 · Weatherproof</span>
+          <span class="step-tag">NTAG216 · Weatherproof</span>
         </div>
       </div>
       <div class="step fade-up">
@@ -651,9 +651,9 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo">Build<span>Proof</span></div>
-  <div class="footer-text">© 2026 BuildProof. North Alabama.</div>
-  <div class="footer-tagline">We don't manage your project. We prove what's built.</div>
+  <div class="footer-logo">Veri<span>Site</span></div>
+  <div class="footer-text">© 2026 VeriSite LLC. North Alabama.</div>
+  <div class="footer-tagline">We don't manage your project. We verify what's built.</div>
 </footer>
 
 <script>
@@ -664,7 +664,6 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
 // ── Lead form submission ──
-// Replace this URL with a FormSpree endpoint, Google Form, or your own webhook
 const LEAD_WEBHOOK = 'https://script.google.com/macros/s/AKfycbzYNKWs31VwrqwB4ZRKoK5cCZDOpZhYNi8i5FAC9kJAysJaFlDgZ9Nn7oDoBV39MC9LSg/exec';
 
 async function submitLead() {
@@ -703,7 +702,6 @@ async function submitLead() {
         body: JSON.stringify(payload)
       });
     }
-    // Show success regardless (also catches cases where webhook isn't set yet)
     document.getElementById('lead-form').style.display = 'none';
     document.getElementById('form-success').classList.add('visible');
   } catch(err) {
