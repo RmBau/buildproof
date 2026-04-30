@@ -176,6 +176,7 @@
   .kpi-card.green::before { background: var(--green-l); }
   .kpi-card.red::before   { background: var(--red-l); }
   .kpi-card.blue::before  { background: var(--blue-l); }
+  .kpi-card.orange::before{ background: #F0AE3C; }
   .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
   .kpi-value { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 42px; line-height: 1; }
   .kpi-value.amber { color: var(--accent); }
@@ -385,7 +386,7 @@
         </label>
       </div>
       <div class="toggle-row" onclick="togglePref('kpi','failed')">
-        <span class="toggle-label"><span class="toggle-icon">🚫</span>Failed Inspections</span>
+        <span class="toggle-label"><span class="toggle-icon">🟡</span>Inspection Ready</span>
         <label class="toggle-switch" onclick="event.stopPropagation()">
           <input type="checkbox" id="tog-kpi-failed" onchange="togglePref('kpi','failed')"><span class="toggle-slider"></span>
         </label>
@@ -413,7 +414,7 @@
         </label>
       </div>
       <div class="toggle-row" onclick="togglePref('sec','failedlist')">
-        <span class="toggle-label"><span class="toggle-icon">⚠️</span>Failed Inspections List</span>
+        <span class="toggle-label"><span class="toggle-icon">🔔</span>Pending Inspections List</span>
         <label class="toggle-switch" onclick="event.stopPropagation()">
           <input type="checkbox" id="tog-sec-failedlist" onchange="togglePref('sec','failedlist')"><span class="toggle-slider"></span>
         </label>
@@ -498,10 +499,10 @@
       <div class="kpi-value amber" id="kpi-total">—</div>
       <div class="kpi-sub">all time scans</div>
     </div>
-    <div class="kpi-card red" id="kpi-wrap-failed" onclick="filterLogByKPI('failed')" style="cursor:pointer;" title="View failed inspections">
-      <div class="kpi-label">Failed Inspections</div>
-      <div class="kpi-value red" id="kpi-failed">—</div>
-      <div class="kpi-sub">need attention</div>
+    <div class="kpi-card amber" id="kpi-wrap-failed" onclick="filterLogByKPI('ready')" style="cursor:pointer;" title="View locations awaiting inspection">
+      <div class="kpi-label">Inspection Ready</div>
+      <div class="kpi-value amber" id="kpi-failed">—</div>
+      <div class="kpi-sub">awaiting inspector</div>
     </div>
     <div class="kpi-card amber" id="kpi-wrap-stale">
       <div class="kpi-label">Stale Locations</div>
@@ -528,11 +529,11 @@
     </div>
     <div class="card" id="sec-wrap-failedlist">
       <div class="card-header">
-        <span class="card-title">Failed Inspections</span>
-        <span class="card-badge red" id="failed-badge">0</span>
+        <span class="card-title">Pending Inspections</span>
+        <span class="card-badge amber" id="failed-badge">0</span>
       </div>
       <div class="card-body" id="failed-list">
-        <div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No failed inspections</div></div>
+        <div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No locations awaiting inspection</div></div>
       </div>
     </div>
   </div>
@@ -966,7 +967,7 @@ function renderKPIs() {
   const now = new Date();
   const lpl = latestPerLoc(filtered);
   document.getElementById('kpi-total').textContent  = filtered.length;
-  document.getElementById('kpi-failed').textContent = filtered.filter(r=>FAILED_STATUSES.includes(r['Status'])).length;
+  document.getElementById('kpi-failed').textContent = lpl.filter(r=>r['Status']==='Inspection Ready').length;
   document.getElementById('kpi-stale').textContent  = lpl.filter(r=>(now-r._ts)>sd*86400000).length;
   document.getElementById('kpi-done').textContent   = lpl.filter(r=>DONE_STATUSES.includes(r['Status'])).length;
   document.getElementById('kpi-stale-sub').textContent = `no activity in ${sd}+ days`;
@@ -985,11 +986,12 @@ function renderStatus() {
 }
 
 function renderFailed() {
-  const items=filtered.filter(r=>FAILED_STATUSES.includes(r['Status'])).sort((a,b)=>b._ts-a._ts);
+  const lpl   = latestPerLoc(filtered);
+  const items = lpl.filter(r=>r['Status']==='Inspection Ready').sort((a,b)=>a._ts-b._ts);
   document.getElementById('failed-badge').textContent=items.length;
   document.getElementById('failed-list').innerHTML = items.length===0
-    ? '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No failed inspections</div></div>'
-    : items.slice(0,8).map(r=>`<div class="failed-item"><div class="failed-header"><span class="failed-trade">${r['SelectTrade']||'—'} · ${r['Task']||'—'}</span><span class="failed-time">${timeAgo(r._ts)}</span></div><div class="failed-detail">${r['Location']||'—'} · ${r['Project']||'—'} · ${r['VerifiedBy']||'—'}</div>${r['Notes']?`<div style="font-size:11px;color:var(--accent);margin-top:4px">📝 ${r['Notes']}</div>`:''}</div>`).join('');
+    ? '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No locations awaiting inspection</div></div>'
+    : items.slice(0,8).map(r=>`<div class="failed-item" style="background:rgba(240,174,60,0.06);border:1px solid rgba(240,174,60,0.25);"><div class="failed-header"><span class="failed-trade" style="color:var(--accent)">${r['SelectTrade']||'—'} · ${r['Task']||'—'}</span><span class="failed-time">${timeAgo(r._ts)}</span></div><div class="failed-detail">${r['Location']||'—'} · ${r['Project']||'—'} · ${r['VerifiedBy']||'—'}</div>${r['Notes']?`<div style="font-size:11px;color:var(--muted);margin-top:4px">📝 ${r['Notes']}</div>`:''}</div>`).join('');
 }
 
 function renderStale() {
@@ -1208,6 +1210,9 @@ function filterLogByKPI(type) {
   } else if (type === 'inspection' && sf) {
     sf.value = 'Passed Inspection';
     logStatusFilter = 'Passed Inspection';
+  } else if (type === 'ready' && sf) {
+    sf.value = 'Inspection Ready';
+    logStatusFilter = 'Inspection Ready';
   }
   renderScanLog();
   document.getElementById('sec-wrap-scanlog').scrollIntoView({behavior:'smooth', block:'start'});
