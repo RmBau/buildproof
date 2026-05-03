@@ -13,7 +13,9 @@
 
 const VeriSiteProcore = (() => {
 
-  const WORKER_BASE = 'https://api.verisite.build';
+  const WORKER_BASE  = 'https://api.verisite.build';
+  const PROJECT_ID   = '279584';
+  const COMPANY_ID   = '4276348';
 
   // ── Token Storage (sessionStorage — never localStorage) ──────────────────
   const Tokens = {
@@ -258,38 +260,55 @@ const VeriSiteProcore = (() => {
 
 })();
 
-// ── HOW TO CALL AFTER EACH NFC TAP ──────────────────────────────────────────
+// ── NFC TAP HANDLER — call this after every successful tap submission ────────
+// Drop this into your existing tap/form submit handler in verisite-dashboard.html
 //
-// After your existing Apps Script webhook fires, add these calls:
-//
-// if (VeriSiteProcore.isConnected()) {
-//
-//   VeriSiteProcore.updateBadge('syncing');
-//
-//   // Always push a daily log entry
-//   await VeriSiteProcore.pushDailyLog({
-//     projectId:  'YOUR_PROCORE_PROJECT_ID',   // e.g. 12345678
-//     companyId:  'YOUR_PROCORE_COMPANY_ID',   // e.g. 87654321
-//     location:   locationName,                // e.g. "Door 204 - Room 204"
-//     trade:      selectedTrade,               // e.g. "Hollow Metal Frames"
-//     status:     selectedStatus,              // e.g. "Inspection Ready"
-//     task:       selectedTask || '',
-//     timestamp:  new Date().toISOString(),
-//     verifiedBy: superintendentName || 'Field Superintendent',
-//   });
-//
-//   // If there's a photo, push it too
-//   if (photoBase64) {
-//     await VeriSiteProcore.pushPhoto({
-//       projectId:   'YOUR_PROCORE_PROJECT_ID',
-//       companyId:   'YOUR_PROCORE_COMPANY_ID',
-//       imageBase64: photoBase64.replace(/^data:image\/jpeg;base64,/, ''),
-//       filename:    `${locationName}_${Date.now()}.jpg`,
-//       location:    locationName,
-//       trade:       selectedTrade,
-//       timestamp:   new Date().toISOString(),
-//     });
-//   }
-//
-//   VeriSiteProcore.updateBadge('connected');
-// }
+// Parameters:
+//   locationName  — string, e.g. "Door 204 - Room 204"
+//   trade         — string, e.g. "Hollow Metal Frames"
+//   status        — string, e.g. "Inspection Ready"
+//   task          — string or null
+//   photoBase64   — full data URI string or null, e.g. "data:image/jpeg;base64,..."
+//   verifiedBy    — string or null, superintendent name
+
+async function pushTapToProcore({ locationName, trade, status, task, photoBase64, verifiedBy }) {
+  if (!VeriSiteProcore.isConnected()) return;
+
+  const timestamp = new Date().toISOString();
+  VeriSiteProcore.updateBadge('syncing');
+
+  try {
+    // Always push daily log entry
+    await VeriSiteProcore.pushDailyLog({
+      projectId:  PROJECT_ID,
+      companyId:  COMPANY_ID,
+      location:   locationName,
+      trade,
+      status,
+      task:       task || '',
+      timestamp,
+      verifiedBy: verifiedBy || 'Field Superintendent',
+    });
+
+    // Push photo if one was captured
+    if (photoBase64) {
+      const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, '');
+      await VeriSiteProcore.pushPhoto({
+        projectId:   PROJECT_ID,
+        companyId:   COMPANY_ID,
+        imageBase64: base64Data,
+        filename:    `${locationName.replace(/\s+/g, '_')}_${Date.now()}.jpg`,
+        location:    locationName,
+        trade,
+        timestamp,
+      });
+    }
+
+    VeriSiteProcore.updateBadge('connected');
+    console.log('[VeriSite→Procore] Tap synced successfully.');
+
+  } catch (err) {
+    console.error('[VeriSite→Procore] Push failed:', err);
+    VeriSiteProcore.updateBadge('connected');
+  }
+}
