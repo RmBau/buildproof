@@ -618,8 +618,19 @@ async function submitForm() {
   }
 
   try {
-    await sendPayload(payload);
+await sendPayload(payload);
     showSuccess(payload);
+    // ── Procore Push ──
+    if (typeof pushTapToProcore === 'function') {
+      pushTapToProcore({
+        locationName: payload.Location,
+        trade:        payload.SelectTrade,
+        status:       payload.Status,
+        task:         payload.Task,
+        photoBase64:  photoBase64 ? 'data:image/jpeg;base64,' + photoBase64 : null,
+        verifiedBy:   payload.VerifiedBy,
+      });
+    }
   } catch(err) {
     addToQueue(payload);
     btn.disabled = false; btn.textContent = 'SUBMIT VERIFICATION';
@@ -715,5 +726,6 @@ function showToast(msg, type='success') {
 ║                                                      ║
 ╚══════════════════════════════════════════════════════╝
 -->
+<script src="procore-integration.js"></script>
 </body>
 </html>
