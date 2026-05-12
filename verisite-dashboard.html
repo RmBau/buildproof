@@ -457,7 +457,15 @@ const ADMIN_LOCKOUT_KEY='vs_admin_lock';
 const ADMIN_SESSION_HOURS=8;
 let CLIENT_NAMES={};
 const clientDisplay=(id)=>CLIENT_NAMES[id]||id;
-const STATUS_CONFIG={'In Progress':{color:'#3498db',bg:'rgba(52,152,219,0.15)',order:1},'Inspection Ready':{color:'#F0AE3C',bg:'rgba(240,174,60,0.15)',order:2},'Passed Inspection':{color:'#2ecc71',bg:'rgba(46,204,113,0.15)',order:3},'Punch Complete':{color:'#1abc9c',bg:'rgba(26,188,156,0.15)',order:4}};
+
+// ── [CHANGE 1 of 3] STATUS_CONFIG ───────────────────────────────────────────
+// Removed: Inspection Ready (status retired)
+// Added:   Not Started (order:0) — init records from programming scan
+// This ensures Not Started locations render correctly in location grid/table
+// and that the status color map is consistent with the 3-option field form.
+const STATUS_CONFIG={'Not Started':{color:'#6b8fa8',bg:'rgba(107,143,168,0.15)',order:0},'In Progress':{color:'#3498db',bg:'rgba(52,152,219,0.15)',order:1},'Passed Inspection':{color:'#2ecc71',bg:'rgba(46,204,113,0.15)',order:2},'Punch Complete':{color:'#1abc9c',bg:'rgba(26,188,156,0.15)',order:3}};
+// ────────────────────────────────────────────────────────────────────────────
+
 const DONE_STATUSES=['Punch Complete'];
 let allData=[],filtered=[],lockedCompany='',lockedProject='',isAdminView=false;
 
@@ -562,12 +570,17 @@ function renderCompletion(){
   const turnedOver=lpl.filter(r=>r['Status']==='Punch Complete').length;
   const stale=lpl.filter(r=>r['Status']!=='Punch Complete'&&(now-r._ts)>sd*86400000).length;
   const active=lpl.filter(r=>r['Status']!=='Punch Complete'&&(now-r._ts)<=sd*86400000).length;
-  const notStarted=0;
+  // ── [CHANGE 2 of 3] notStarted — reads from real data instead of hardcoded 0
+  // Init records written at programming time carry Status='Not Started'.
+  // latestPerLoc() returns one row per location; if a super has never scanned
+  // that tag, the latest record is still the init record → Not Started.
+  const notStarted=lpl.filter(r=>r['Status']==='Not Started').length;
   const pct=total>0?Math.round(turnedOver/total*100):0;
   const toW=total>0?Math.round(turnedOver/total*100):0;
   const actW=total>0?Math.round(active/total*100):0;
   const stW=total>0?Math.round(stale/total*100):0;
-  const nsW=0;
+  // ── [CHANGE 3 of 3] nsW — now reflects actual Not Started proportion
+  const nsW=total>0?Math.round(notStarted/total*100):0;
   document.getElementById('comp-pct').textContent=pct+'%';
   document.getElementById('comp-ctx').textContent=`${turnedOver} of ${total} locations turned over \u00b7 based on Punch Complete scans`;
   document.getElementById('prog-to').style.width=toW+'%';
